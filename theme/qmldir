@@ -1,0 +1,5 @@
+singleton Palette 1.0 Palette.qml
+Bar 1.0 ./Bar/Bar.qml
+MusicPlayer 1.0 ./Bar/MusicPlayer.qml
+Launcher 1.0 ./Bar/Launcher.qml
+SetWallpaper 1.0 ./Bar/SetWallpaper.qml

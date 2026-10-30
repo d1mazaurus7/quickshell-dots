@@ -1,0 +1,27 @@
+{
+    "appearance": {
+        "animationScale": 1,
+        "borders": true,
+        "radiusScale": 0.65,
+        "scale": 1.1,
+        "spacingHorizontal": 0.7000000000000001,
+        "spacingVertical": 0.7000000000000001
+    },
+    "snow": {
+        "capRounding": 0.8500000000000001,
+        "driftHeight": 35,
+        "enabled": false,
+        "hideGroundWithTiled": true,
+        "intensity": 1.1,
+        "shakeOff": 0.65,
+        "speed": 1,
+        "sweep": true,
+        "windowDriftHeight": 80,
+        "windowDrifts": true
+    },
+    "typography": {
+        "family": "Monospace",
+        "size": 12
+    },
+    "version": 1
+}
