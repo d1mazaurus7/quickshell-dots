@@ -79,6 +79,21 @@ ColumnLayout {
     }
 
     SettingRow {
+        z: osdDropdown.expanded ? 1 : 0
+        title: "Звук изменения громкости"
+        description: "Звук всплывающего окна громкости и Caps/Num Lock"
+
+        SettingDropdown {
+            id: osdDropdown
+            model: page.sounds
+            currentValue: page.sound.osdSound
+            searchable: true
+            popupHeight: Tokens.scaled(180)
+            onActivated: value => page.sound.osdSound = value
+        }
+    }
+
+    SettingRow {
         title: "Окно громкости"
         description: "Микшер приложений по клику на модуль звука в баре"
 

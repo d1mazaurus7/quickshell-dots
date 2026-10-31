@@ -180,6 +180,8 @@ Singleton {
                 property string clickSound: "click.wav"
                 // Звук уведомления (пока не интегрирован)
                 property string notificationSound: "button.wav"
+                // Звук окна громкости и Caps/Num Lock
+                property string osdSound: "click.wav"
                 // Окно громкости по клику на модуль в баре и его разделы
                 property bool mixer: true
                 property bool mixerOutputs: true

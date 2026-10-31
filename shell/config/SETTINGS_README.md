@@ -24,7 +24,7 @@
 | `musicPlayer` | `cava`, `coverBackground`, `backgroundBlur`, `wavyTimeline`, `showArtist`, `equalizer` (bool), `timelineStyle` (string: `wave` / `material`), `danceGif` (string, имя файла из `assets/gifs/dance`, `""` — нет), `danceGifEnabled` (bool) |
 | `workspaces` | `showNumbers`, `hideEmpty` (bool), `style` (string: `circles` / `squares`) |
 | `notiCenter` | `popupSide` (string: `right` / `left`), `sound` (bool, заглушка), `swipe` (bool), `swipeDirection` (string: `both` / `right` / `left`), `width`, `bodyLines` (int), `heightRatio` (real 0.4..1), `showClock`, `showSeconds`, `showDate`, `showWeekday`, `showWifi`, `showBluetooth`, `showDnd`, `showBrightness`, `showVolume`, `showActions`, `uiSounds` (bool) |
-| `sound`      | `typeSound`, `clickSound`, `notificationSound` (string, имя файла из `assets/sounds`), `mixer`, `mixerOutputs`, `mixerInputs`, `mixerRestart` (bool) |
+| `sound`      | `typeSound`, `clickSound`, `notificationSound`, `osdSound` (string, имя файла из `assets/sounds`), `mixer`, `mixerOutputs`, `mixerInputs`, `mixerRestart` (bool) |
 | `screenshot` | `notify`, `editTools`, `instant`, `sound` (bool), `soundFile` (string, имя файла из `assets/sounds/screenshot`) |
 | `assistant`  | `name`, `description`, `systemPrompt`, `apiKey`, `model` (string), `avatar` (string, имя файла из `assets/img/avatars`, `""` — нет), `temperature` (real), `maxTokens` (int), `side` (string: `left` / `right`), `width`, `fontSize` (int), `heightRatio` (real 0.4..1), `clearCommand`, `reloadCommand`, `loadCommand` (string) |
 

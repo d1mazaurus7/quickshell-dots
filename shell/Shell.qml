@@ -18,6 +18,7 @@ import "../Bar/stopwatch" as Stopwatch
 import "../services/screenshot" as Screenshot
 import "../modules/volume" as Volume
 import "../Bar/assistant" as Assistant
+import "../Bar/osd" as Osd
 
 Item {
     id: shellRoot
@@ -60,6 +61,8 @@ Item {
     NotiCenter.NotificationPopups { notifications: notificationState }
     // Снег на рабочем столе (по настройке)
     Snow.Snow {}
+    // Окно громкости и Caps/Num Lock
+    Osd.Osd {}
     // Окно Bar для каждого экрана
     Variants {
         model: Quickshell.screens
