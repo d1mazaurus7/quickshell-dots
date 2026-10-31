@@ -11,6 +11,14 @@ ColumnLayout {
 
     readonly property var colors: Tokens.colors
     readonly property var player: Config.options.musicPlayer
+    // Все gif из assets/gifs/dance
+    readonly property var gifs: [
+        "Dance Vtuber Sticker.gif",
+        "Happy School Girl Sticker by helloangelgirl.gif",
+        "Umamusume Uma Sticker.gif",
+        "Umamusume Uma Sticker(1).gif",
+        "gif.gif"
+    ]
 
     spacing: Tokens.spacingMediumV
 
@@ -29,6 +37,64 @@ ColumnLayout {
         SettingSwitch {
             checked: page.player.cava
             onToggled: checked => page.player.cava = checked
+        }
+    }
+
+    SettingRow {
+        title: "Gif"
+        description: "Анимация в окне плеера, справа от эквалайзера"
+
+        SettingSwitch {
+            checked: page.player.danceGifEnabled
+            onToggled: checked => page.player.danceGifEnabled = checked
+        }
+    }
+
+    SettingRow {
+        z: gifDropdown.expanded ? 1 : 0
+        shown: page.player.danceGifEnabled
+        child: true
+        title: "Выбор gif"
+        description: "Файл из assets/gifs/dance"
+
+        Column {
+            spacing: Tokens.spacingSmallV
+
+            // Предпросмотр выбранной gif
+            Rectangle {
+                width: gifDropdown.width
+                height: Tokens.scaled(140)
+                radius: Tokens.radiusMedium
+                color: page.colors.surface_container_low
+                border.width: Tokens.borderWidth
+                border.color: page.colors.outline_variant
+
+                Text {
+                    anchors.centerIn: parent
+                    visible: page.player.danceGif === ""
+                    text: "Для предпросмотра выберите gif:"
+                    color: page.colors.on_surface_variant
+                    font: Tokens.fontSmall
+                }
+
+                AnimatedImage {
+                    anchors.fill: parent
+                    anchors.margins: Tokens.spacingSmall
+                    visible: page.player.danceGif !== ""
+                    source: visible ? Qt.resolvedUrl("../../assets/gifs/dance/" + page.player.danceGif) : ""
+                    fillMode: Image.PreserveAspectFit
+                    asynchronous: true
+                    playing: visible
+                }
+            }
+
+            SettingDropdown {
+                id: gifDropdown
+                model: page.gifs
+                popupHeight: Tokens.scaled(220)
+                currentValue: page.player.danceGif
+                onActivated: value => page.player.danceGif = value
+            }
         }
     }
 

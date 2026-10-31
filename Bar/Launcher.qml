@@ -97,10 +97,24 @@ PanelWindow {
 
     // Поддерживаемые теги
     property bool emojiMode: tagMode && currentTag === "emoji"
+    property bool webMode: tagMode && currentTag === "web"
+
+    // Поисковые системы для /web
+    readonly property var webEngines: [
+        { name: "Google", url: "https://www.google.com/search?q=" },
+        { name: "DuckDuckGo", url: "https://duckduckgo.com/?q=" }
+    ]
+
+    function openWebSearch(engine): void {
+        if (tagQuery.length === 0) return;
+        Qt.openUrlExternally(engine.url + encodeURIComponent(tagQuery));
+        closeLauncher();
+    }
 
     // Список тег-команд для автодополнения
     readonly property var tagCommands: [
-        { tag: "emoji", description: "Поиск эмоджи" }
+        { tag: "emoji", description: "Поиск эмоджи" },
+        { tag: "web", description: "Поиск в интернете" }
     ]
 
     // Режим автодополнения: после "/", ещё без пробела (тег ещё печатается)
@@ -193,7 +207,9 @@ PanelWindow {
                         clip: true
 
                         Keys.onUpPressed: {
-                            if (launcher.tagSuggestMode) {
+                            if (launcher.webMode) {
+                                webList.currentIndex = webList.currentIndex > 0 ? webList.currentIndex - 1 : webList.count - 1;
+                            } else if (launcher.tagSuggestMode) {
                                 if (tagList.count > 0) {
                                     if (tagList.currentIndex > 0) {
                                         tagList.decrementCurrentIndex();
@@ -213,7 +229,9 @@ PanelWindow {
                         }
 
                         Keys.onDownPressed: {
-                            if (launcher.tagSuggestMode) {
+                            if (launcher.webMode) {
+                                webList.currentIndex = webList.currentIndex < webList.count - 1 ? webList.currentIndex + 1 : 0;
+                            } else if (launcher.tagSuggestMode) {
                                 if (tagList.count > 0) {
                                     if (tagList.currentIndex < tagList.count - 1) {
                                         tagList.incrementCurrentIndex();
@@ -251,6 +269,9 @@ PanelWindow {
                                     commandProcess.running = true;
                                     launcher.closeLauncher();
                                 }
+                            } else if (launcher.webMode) {
+                                if (webList.currentItem)
+                                    launcher.openWebSearch(webList.currentItem.modelData);
                             } else if (launcher.tagSuggestMode) {
                                 tagList.completeCurrent();
                             } else if (launcher.emojiMode) {
@@ -266,7 +287,7 @@ PanelWindow {
                         }
 
                         Keys.onTabPressed: {
-                            if (launcher.tagSuggestMode && tagList.count > 0)
+                            if (launcher.tagSuggestMode && !launcher.webMode && tagList.count > 0)
                                 tagList.completeCurrent();
                         }
 
@@ -282,7 +303,7 @@ PanelWindow {
                             color: Theme.Palette.on_surface_variant
                             font.family: "JetBrains Mono"
                             font.pointSize: 12
-                            text: "Поиск приложений... (> команда, /emoji эмоджи)"
+                            text: "Поиск приложений... (> команда, /emoji эмоджи, /web поиск)"
                             visible: !searchField.text && !searchField.activeFocus
                         }
 
@@ -514,7 +535,7 @@ PanelWindow {
                     anchors.topMargin: 2
                     anchors.bottomMargin: 2
                     spacing: 4
-                    visible: launcher.tagSuggestMode && count > 0
+                    visible: launcher.tagSuggestMode && !launcher.webMode && count > 0
 
                     highlight: Flow.FlowHighlight {
                         view: tagList
@@ -590,6 +611,85 @@ PanelWindow {
                     }
                 }
 
+                // Web-поиск ("/web <запрос>")
+                ListView {
+                    id: webList
+                    anchors.fill: parent
+                    anchors.leftMargin: 12
+                    anchors.rightMargin: 12
+                    anchors.topMargin: 2
+                    anchors.bottomMargin: 2
+                    spacing: 4
+                    visible: launcher.webMode
+
+                    highlight: Flow.FlowHighlight {
+                        view: webList
+                    }
+
+                    model: launcher.webMode ? launcher.webEngines : []
+
+                    onModelChanged: currentIndex = 0
+
+                    delegate: MouseArea {
+                        id: webDelegate
+                        x: 4
+                        width: webList.width - 8
+                        height: 48
+
+                        required property var modelData
+                        required property int index
+
+                        hoverEnabled: true
+
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: Tokens.radius(10)
+                            color: webDelegate.ListView.isCurrentItem
+                                   ? "transparent"
+                                   : (webDelegate.containsPress || webDelegate.containsMouse
+                                      ? Theme.Palette.surface_container_high
+                                      : Theme.Palette.surface_container)
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: 12
+                                anchors.rightMargin: 12
+                                spacing: 12
+
+                                Text {
+                                    color: webDelegate.ListView.isCurrentItem
+                                           ? Flow.FlowHighlightAnimation.selectedTextColor
+                                           : Theme.Palette.primary
+                                    font.family: "JetBrains Mono"
+                                    font.pointSize: 11
+                                    font.bold: true
+                                    text: webDelegate.modelData.name
+                                }
+
+                                Text {
+                                    Layout.fillWidth: true
+                                    text: launcher.tagQuery.length > 0 ? launcher.tagQuery : "Введите запрос..."
+                                    color: webDelegate.ListView.isCurrentItem
+                                           ? Flow.FlowHighlightAnimation.selectedTextColor
+                                           : Theme.Palette.on_surface_variant
+                                    font.family: "JetBrains Mono"
+                                    font.pointSize: 10
+                                    elide: Text.ElideRight
+                                }
+                            }
+                        }
+
+                        onClicked: {
+                            webList.currentIndex = index;
+                            launcher.openWebSearch(modelData);
+                        }
+
+                        onContainsMouseChanged: {
+                            if (containsMouse) webList.currentIndex = index;
+                        }
+                    }
+                }
+
                 ListView {
                     id: appList
                     anchors.fill: parent
@@ -599,14 +699,14 @@ PanelWindow {
                     anchors.bottomMargin: 2
                     spacing: 4
                     clip: false
-                    visible: !launcher.commandMode && !launcher.emojiMode && !launcher.tagSuggestMode
+                    visible: !launcher.commandMode && !launcher.emojiMode && !launcher.webMode && !launcher.tagSuggestMode
 
                     highlight: Flow.FlowHighlight {
                         view: appList
                     }
 
                     model: {
-                        if (launcher.commandMode || launcher.emojiMode) return [];
+                        if (launcher.commandMode || launcher.emojiMode || launcher.webMode) return [];
                         var query = searchField.text.toLowerCase();
                         var result = [];
                         var entries = DesktopEntries.applications.values;

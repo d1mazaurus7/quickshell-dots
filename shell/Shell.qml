@@ -16,6 +16,8 @@ import "../modules/snow" as Snow
 import "../modules/time" as Time
 import "../Bar/stopwatch" as Stopwatch
 import "../services/screenshot" as Screenshot
+import "../modules/volume" as Volume
+import "../Bar/assistant" as Assistant
 
 Item {
     id: shellRoot
@@ -30,6 +32,24 @@ Item {
     Stopwatch.Stopwatch { id: stopwatchWindow }
     // Скриншоты: qs ipc call screenshot capture
     Screenshot.Screenshot {}
+    // Чат с ИИ: qs ipc call assistant toggle
+    Assistant.AssistantState { id: assistantState }
+    Assistant.AssistantWindow { id: assistantWindow; chat: assistantState }
+    Assistant.AssistantIpc {
+        onRequested: (action, output) => {
+            if (action === "close" || (action === "toggle" && assistantWindow.open)) {
+                assistantWindow.open = false;
+                return;
+            }
+            // Монитор меняется только у скрытого окна
+            if (!assistantWindow.visible) {
+                for (let i = 0; i < Quickshell.screens.length; i++)
+                    if (Quickshell.screens[i].name === output)
+                        assistantWindow.screen = Quickshell.screens[i];
+            }
+            assistantWindow.open = true;
+        }
+    }
     // Эквалайзер EasyEffects: одно состояние на все экраны
     MusicEqualizer.EqualizerState { id: equalizerState }
     // Сервер уведомлений и всплывающие уведомления
@@ -166,6 +186,7 @@ Item {
                     }
 
                     // Звук
+                    Volume.Volume { barHeight: barWindow.implicitHeight }
                     // Мониторинг системы (CPU, RAM)
                     // Уведомления
                 }

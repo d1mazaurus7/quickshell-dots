@@ -14,17 +14,23 @@ Row {
     property real value
     // Подпись значения справа
     property var formatValue: v => v.toFixed(1)
+    // Ширина полосы слайдера (без подписи)
+    property real sliderWidth: Tokens.scaled(200)
 
     readonly property var colors: Tokens.colors
 
     signal moved(real value)
+    // Каждое изменение при перетаскивании — для живой регулировки
+    signal dragged(real value)
 
     spacing: Tokens.spacingMedium
 
     Slider {
         id: slider
         anchors.verticalCenter: parent.verticalCenter
-        implicitWidth: Tokens.scaled(200)
+        implicitWidth: root.sliderWidth
+        // Высота по наибольшей ручке: рост ручки при hover/pressed не меняет высоту
+        implicitHeight: Tokens.scaled(20) + topPadding + bottomPadding
         from: root.from
         to: root.to
         stepSize: root.stepSize
@@ -33,8 +39,10 @@ Row {
 
         // Щелчок на каждом шаге при перетаскивании
         onValueChanged: {
-            if (pressed)
-                Quickshell.execDetached(["pw-play", Quickshell.shellPath("assets/sounds/list.wav")]);
+            if (!pressed)
+                return;
+            Quickshell.execDetached(["pw-play", Quickshell.shellPath("assets/sounds/list.wav")]);
+            root.dragged(value);
         }
 
         onPressedChanged: {

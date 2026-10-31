@@ -120,8 +120,8 @@ PanelWindow {
     Item {
         id: content
         anchors.fill: parent
-        // Окно прозрачно, пока кадр не получен, чтобы не попасть в снимок самому
-        opacity: root.frame && root.frame.shot.hasContent && !root.service.closing ? 1 : 0
+        // Окно прозрачно, пока кадр не загружен
+        opacity: root.frame && root.frame.shot.status === Image.Ready && !root.service.closing ? 1 : 0
 
         Behavior on opacity { NumberAnimation { duration: Tokens.animationMedium; easing.type: Easing.OutCubic } }
 
@@ -143,11 +143,13 @@ PanelWindow {
                 readonly property var paintCanvas: paintLayer
                 readonly property var blurMask: blurLayer
 
-                ScreencopyView {
+                Image {
                     id: shotView
                     anchors.fill: parent
-                    captureSource: root.screen
-                    layer.enabled: true
+                    source: "file://" + root.service.framePath
+                    // Файл перезаписывается при каждом снимке
+                    cache: false
+                    asynchronous: true
                 }
 
                 // Размытая копия кадра, видимая только там, где прошлась кисть размытия

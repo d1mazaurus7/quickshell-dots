@@ -51,7 +51,7 @@ ColumnLayout {
     SettingRow {
         z: clickDropdown.expanded ? 1 : 0
         title: "Звук клика"
-        description: "Звук нажатия кнопок скриншотов"
+        description: "Звук нажатия кнопок скриншотов и окна громкости"
 
         SettingDropdown {
             id: clickDropdown
@@ -75,6 +75,52 @@ ColumnLayout {
             searchable: true
             popupHeight: Tokens.scaled(180)
             onActivated: value => page.sound.notificationSound = value
+        }
+    }
+
+    SettingRow {
+        title: "Окно громкости"
+        description: "Микшер приложений по клику на модуль звука в баре"
+
+        SettingSwitch {
+            checked: page.sound.mixer
+            onToggled: checked => page.sound.mixer = checked
+        }
+    }
+
+    SettingRow {
+        child: true
+        shown: page.sound.mixer
+        title: "Выходы"
+        description: "Громкость воспроизводящих приложений"
+
+        SettingSwitch {
+            checked: page.sound.mixerOutputs
+            onToggled: checked => page.sound.mixerOutputs = checked
+        }
+    }
+
+    SettingRow {
+        child: true
+        shown: page.sound.mixer
+        title: "Входы"
+        description: "Громкость записывающих приложений"
+
+        SettingSwitch {
+            checked: page.sound.mixerInputs
+            onToggled: checked => page.sound.mixerInputs = checked
+        }
+    }
+
+    SettingRow {
+        child: true
+        shown: page.sound.mixer
+        title: "Кнопки перезагрузки"
+        description: "Перезапуск WirePlumber и EasyEffects"
+
+        SettingSwitch {
+            checked: page.sound.mixerRestart
+            onToggled: checked => page.sound.mixerRestart = checked
         }
     }
 }

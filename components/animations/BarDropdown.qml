@@ -4,6 +4,7 @@ import QtQuick.Shapes
 import Quickshell
 import "../../theme" as Theme
 import "../../shell/theme"
+import "BarDropdownStack.js" as DropdownStack
 
 // Окно, "выплывающее" из нижней кромки бара под элементом anchorItem.
 // Сверху вогнутые скругления ("уши") плавно переходят в бар.
@@ -77,6 +78,12 @@ PopupWindow {
     anchor.gravity: Edges.Bottom | Edges.Right
     anchor.rect.width: 1
     anchor.rect.height: 1
+    // Левый верхний угол окна в координатах бара.
+    property real originX: 0
+    property real originY: 0
+    // Dropdown, к которому Qt прикрепил это окно (null — к бару).
+    property var nestParent: null
+
     anchor.onAnchoring: {
         const win = root.anchorItem.QsWindow.window;
         const pos = root.anchorItem.QsWindow.itemPosition(root.anchorItem);
@@ -84,8 +91,19 @@ PopupWindow {
         const maxX = win.width - minX - root.windowContentWidth;
         const bodyX = root.alignRight ? win.width - root.windowContentWidth
             : Math.max(minX, Math.min(maxX, pos.x + root.anchorItem.width / 2 - root.windowContentWidth / 2));
-        root.anchor.rect.x = bodyX - root.earRadius;
-        root.anchor.rect.y = win.height - 1;
+        root.originX = bodyX - root.earRadius;
+        root.originY = win.height;
+
+        // Окно ещё не показано — оно будет создано дочерним к верхнему
+        // видимому dropdown'у; запоминаем его на всё время показа.
+        if (!root.visible) {
+            const top = DropdownStack.top();
+            root.nestParent = top && top !== root && top.anchor.window === root.anchor.window ? top : null;
+        }
+
+        const p = root.nestParent;
+        root.anchor.rect.x = p ? root.originX - p.originX : root.originX;
+        root.anchor.rect.y = (p ? root.originY - p.originY : root.originY) - 1;
     }
 
     // Esc закрывает окно так же, как клик вне его — с анимацией сворачивания.
@@ -101,7 +119,15 @@ PopupWindow {
     onImplicitWidthChanged: if (visible) anchor.updateAnchor()
     onImplicitHeightChanged: if (visible) anchor.updateAnchor()
 
+    Component.onDestruction: DropdownStack.remove(root)
+
     onVisibleChanged: {
+        if (visible) {
+            DropdownStack.push(root);
+        } else {
+            DropdownStack.remove(root);
+            nestParent = null;
+        }
         if (!visible && open) {
             dismissedAt = Date.now();
             dismissed();

@@ -127,6 +127,9 @@ Singleton {
                 property bool showArtist: true
                 // Полосы эквалайзера и пресеты
                 property bool equalizer: true
+                // Gif справа от эквалайзера: имя файла из assets/gifs/dance, "" — без gif
+                property string danceGif: ""
+                property bool danceGifEnabled: true
             }
 
             property JsonObject workspaces: JsonObject {
@@ -173,10 +176,15 @@ Singleton {
             property JsonObject sound: JsonObject {
                 // Звук печати в лаунчере (имя файла из assets/sounds)
                 property string typeSound: "type.wav"
-                // Звук клика (пока не интегрирован)
+                // Звук клика (кнопки скриншотов и окна громкости)
                 property string clickSound: "click.wav"
                 // Звук уведомления (пока не интегрирован)
                 property string notificationSound: "button.wav"
+                // Окно громкости по клику на модуль в баре и его разделы
+                property bool mixer: true
+                property bool mixerOutputs: true
+                property bool mixerInputs: true
+                property bool mixerRestart: true
             }
 
             property JsonObject screenshot: JsonObject {
@@ -189,6 +197,32 @@ Singleton {
                 // Звук снимка (файл из assets/sounds/screenshot)
                 property bool sound: false
                 property string soundFile: ""
+            }
+
+            property JsonObject assistant: JsonObject {
+                // Имя и подпись в шапке чата
+                property string name: "Ассистент"
+                property string description: "ИИ-помощник"
+                // Аватар (файл из assets/img/avatars, "" — нет)
+                property string avatar: ""
+                property string systemPrompt: ""
+                // Ключ OpenRouter
+                property string apiKey: ""
+                property string model: "qwen/qwen-2.5-7b-instruct"
+                property real temperature: 0.7
+                property int maxTokens: 1024
+                // Край экрана, от которого выезжает окно: "left" | "right"
+                property string side: "left"
+                // Ширина окна, лог. px
+                property int width: 420
+                // Высота окна — доля доступной высоты экрана, 0.4..1
+                property real heightRatio: 1.0
+                // Базовый размер текста в окне, px
+                property int fontSize: 12
+                // Команды чата
+                property string clearCommand: "/clear"
+                property string reloadCommand: "/reload"
+                property string loadCommand: "/load"
             }
         }
     }

@@ -42,6 +42,9 @@ Item {
         return icon.includes("://") ? icon : Quickshell.iconPath(icon, true);
     }
 
+    // Развёрнуто ли полное содержимое (заголовок и текст без обрезки).
+    property bool expanded: false
+
     property real reveal: edge === "" ? 1 : 0
     property real collapse: 1
     property real dx: 0
@@ -188,6 +191,7 @@ Item {
             width: card.width - Math.abs(card.v)
             height: Math.max(col.implicitHeight, 40 * card.s) + 14 * card.s * 2
             clip: true
+            Behavior on height { NumberAnimation { duration: Tokens.animationMedium; easing.type: Easing.OutCubic } }
             topRightRadius: card.edge === "right" ? 0 : card.v > 0 ? card.stickR : card.r
             bottomRightRadius: topRightRadius
             topLeftRadius: card.edge === "left" ? 0 : card.v < 0 ? card.stickR : card.r
@@ -251,7 +255,7 @@ Item {
                     spacing: 3 * card.s
 
                     Text {
-                        width: parent.width
+                        width: parent.width - (expandBtn.visible ? expandBtn.width + 4 * card.s : 0)
                         text: card.notification ? card.notification.appName || "Уведомление" : ""
                         elide: Text.ElideRight
                         color: Theme.Palette.on_surface_variant
@@ -260,10 +264,12 @@ Item {
                     }
 
                     Text {
+                        id: summaryText
                         width: parent.width
                         visible: text !== ""
                         text: card.notification ? card.notification.summary : ""
                         textFormat: Text.PlainText
+                        wrapMode: card.expanded ? Text.Wrap : Text.NoWrap
                         elide: Text.ElideRight
                         color: Theme.Palette.on_surface
                         font.family: "JetBrainsMono Nerd Font"
@@ -272,12 +278,13 @@ Item {
                     }
 
                     Text {
+                        id: bodyText
                         width: parent.width
                         visible: text !== ""
                         text: card.notification ? card.notification.body : ""
                         textFormat: Text.PlainText
                         wrapMode: Text.Wrap
-                        maximumLineCount: card.cfg.bodyLines
+                        maximumLineCount: card.expanded ? 1000 : card.cfg.bodyLines
                         elide: Text.ElideRight
                         color: Theme.Palette.on_surface_variant
                         font.family: "JetBrainsMono Nerd Font"
@@ -327,6 +334,45 @@ Item {
                                 }
                             }
                         }
+                    }
+                }
+
+                // Стрелка разворачивания: видна, только если текст не помещается.
+                Rectangle {
+                    id: expandBtn
+                    anchors.right: parent.right
+                    anchors.rightMargin: 10 * card.s
+                    y: 10 * card.s
+                    width: 22 * card.s
+                    height: width
+                    radius: height / 2
+                    visible: card.expanded || summaryText.truncated || bodyText.truncated
+                    color: "transparent"
+
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: parent.radius
+                        color: Theme.Palette.on_surface
+                        opacity: expandArea.pressed ? 0.12 : expandArea.containsMouse ? 0.08 : 0
+                        Behavior on opacity { NumberAnimation { duration: Tokens.animationFast } }
+                    }
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "\uf078"
+                        rotation: card.expanded ? 180 : 0
+                        color: Theme.Palette.on_surface_variant
+                        font.family: "JetBrainsMono Nerd Font"
+                        font.pixelSize: Math.round(11 * card.s)
+                        Behavior on rotation { NumberAnimation { duration: Tokens.animationMedium; easing.type: Easing.OutCubic } }
+                    }
+
+                    MouseArea {
+                        id: expandArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: card.expanded = !card.expanded
                     }
                 }
             }

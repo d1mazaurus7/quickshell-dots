@@ -28,7 +28,10 @@ Anim.BarDropdown {
         return Math.floor(t / 60) + ":" + (s < 10 ? "0" : "") + s;
     }
 
-    contentWidth: Tokens.scaled(680)
+    readonly property bool showGif: cfg.danceGifEnabled && cfg.danceGif !== ""
+    readonly property int gifWidth: Tokens.scaled(150)
+
+    contentWidth: Tokens.scaled(680) + (showGif ? gifWidth + Tokens.scaled(14) : 0)
     padding: Tokens.scaled(10)
 
     // position в MPRIS не обновляется сам — перечитываем, пока окно открыто и трек играет
@@ -201,24 +204,40 @@ Anim.BarDropdown {
                 }
             }
 
-            // Полосы эквалайзера
+            // Полосы эквалайзера и gif справа (gif — и без эквалайзера)
             Row {
                 anchors.horizontalCenter: parent.horizontalCenter
-                visible: root.cfg.equalizer
+                visible: root.cfg.equalizer || root.showGif
                 spacing: Tokens.scaled(14)
 
-                Repeater {
-                    model: root.equalizer.frequencies
+                Row {
+                    id: eqBands
+                    visible: root.cfg.equalizer
+                    spacing: Tokens.scaled(14)
 
-                    EqSlider {
-                        required property int modelData
-                        required property int index
-                        value: root.equalizer.gains[index]
-                        from: root.equalizer.minGain
-                        to: root.equalizer.maxGain
-                        label: modelData >= 1000 ? (modelData / 1000) + "k" : String(modelData)
-                        onMoved: v => root.equalizer.setGain(index, v)
+                    Repeater {
+                        model: root.equalizer.frequencies
+
+                        EqSlider {
+                            required property int modelData
+                            required property int index
+                            value: root.equalizer.gains[index]
+                            from: root.equalizer.minGain
+                            to: root.equalizer.maxGain
+                            label: modelData >= 1000 ? (modelData / 1000) + "k" : String(modelData)
+                            onMoved: v => root.equalizer.setGain(index, v)
+                        }
                     }
+                }
+
+                AnimatedImage {
+                    visible: root.showGif
+                    width: root.gifWidth
+                    height: eqBands.height
+                    source: root.showGif ? Qt.resolvedUrl("../../assets/gifs/dance/" + root.cfg.danceGif) : ""
+                    fillMode: Image.PreserveAspectFit
+                    asynchronous: true
+                    playing: root.visible
                 }
             }
 

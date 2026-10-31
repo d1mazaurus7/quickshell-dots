@@ -90,7 +90,8 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         y: field.height + Tokens.spacingSmallV + (root.expanded ? 0 : -Tokens.spacingMediumV)
-        height: root.popupHeight
+        // По содержимому, но не выше popupHeight — без пустого места у коротких списков
+        height: Math.min(root.popupHeight, popupContent.implicitHeight + Tokens.spacingSmallV * 2)
         radius: Tokens.radiusMedium
         color: root.colors.surface_container_high
         border.width: Tokens.borderWidth
@@ -104,6 +105,7 @@ Item {
         MouseArea { anchors.fill: parent }
 
         ColumnLayout {
+            id: popupContent
             anchors.fill: parent
             anchors.leftMargin: Tokens.spacingSmall
             anchors.rightMargin: Tokens.spacingSmall
@@ -144,6 +146,7 @@ Item {
                 id: list
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+                Layout.preferredHeight: contentHeight
                 clip: true
                 spacing: 2
                 boundsBehavior: Flickable.StopAtBounds

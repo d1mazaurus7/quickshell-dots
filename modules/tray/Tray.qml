@@ -1,13 +1,13 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Shapes
 import Quickshell
 import Quickshell.Io
 import Quickshell.Services.SystemTray
 import Quickshell.Widgets
 import "../../theme" as Theme
 import "../../shell/theme"
+import "../../components/animations" as Anim
 
 // Кнопка "Tray" с выпадающим списком элементов SystemTray.
 // Использование в bar:
@@ -44,15 +44,12 @@ Item {
     property int hoverDuration: 120
 
     property bool open: false
-    // Момент последнего закрытия попапа композитором: клик по кнопке,
-    // который закрыл попап (клик вне его), не должен открывать его снова.
-    property double closedAt: 0
 
     implicitWidth: button.implicitWidth
     implicitHeight: buttonHeight
 
     function toggle() {
-        if (!open && Date.now() - closedAt < 200)
+        if (!open && dropdown.recentlyDismissed())
             return;
         open = !open;
     }
@@ -137,130 +134,55 @@ kill -TERM "$1"
         }
     }
 
-    PopupWindow {
-        id: popup
+    Anim.BarDropdown {
+        id: dropdown
+        anchorItem: button
+        open: root.open
+        contentWidth: root.menuWidth
+        padding: root.menuPadding
+        radius: root.menuRadius
+        earRadius: root.earRadius
+        barRadius: root.barRadius
+        animDuration: root.animDuration
+        onDismissed: root.open = false
 
-        // Окно остаётся видимым, пока идёт анимация закрытия.
-        visible: root.open || menu.revealHeight > 0
-        grabFocus: true
-        color: "transparent"
-        implicitWidth: root.menuWidth + root.earRadius * 2
-        implicitHeight: menu.fullHeight
-
-        // Верх попапа совпадает с нижней кромкой бара, тело — под кнопкой,
-        // но не ближе к краю бара, чем его нижнее скругление.
-        anchor.window: root.QsWindow.window
-        anchor.edges: Edges.Bottom | Edges.Left
-        anchor.gravity: Edges.Bottom | Edges.Right
-        anchor.rect.width: 1
-        anchor.rect.height: 1
-        anchor.onAnchoring: {
-            const win = root.QsWindow.window;
-            const pos = root.QsWindow.itemPosition(button);
-            const minX = root.barRadius + root.earRadius;
-            const maxX = win.width - minX - root.menuWidth;
-            const bodyX = Math.max(minX, Math.min(maxX, pos.x + button.width / 2 - root.menuWidth / 2));
-            popup.anchor.rect.x = bodyX - root.earRadius;
-            popup.anchor.rect.y = win.height - 1;
-        }
-
-        // Закрытие композитором (клик вне попапа).
-        onVisibleChanged: {
-            if (!visible && root.open) {
-                root.open = false;
-                root.closedAt = Date.now();
-            }
-        }
-
-        Item {
-            id: menu
-
-            readonly property real fullHeight: Math.min(content.implicitHeight + root.menuPadding * 2, root.menuMaxHeight)
-            property real revealHeight: root.open ? fullHeight : 0
-
+        Flickable {
             width: parent.width
-            height: parent.height
+            height: Math.min(content.implicitHeight, root.menuMaxHeight - root.menuPadding * 2)
+            contentHeight: content.implicitHeight
+            boundsBehavior: Flickable.StopAtBounds
+            clip: true
 
-            Behavior on revealHeight { NumberAnimation { duration: root.animDuration; easing.type: Easing.OutCubic } }
+            ColumnLayout {
+                id: content
+                width: parent.width
+                spacing: root.menuSpacing
 
-            // Фон цвета бара: вогнутые скругления сверху переходят в бар,
-            // снизу — обычные углы. Пока окно раскрывается, вертикальные
-            // радиусы сжимаются вместе с высотой.
-            Shape {
-                anchors.fill: parent
-                preferredRendererType: Shape.CurveRenderer
-
-                ShapePath {
-                    id: bg
-
-                    readonly property real w: menu.width
-                    readonly property real h: menu.revealHeight
-                    readonly property real er: root.earRadius
-                    readonly property real erY: Math.min(er, h / 2)
-                    readonly property real br: root.menuRadius
-                    readonly property real brY: Math.min(br, h / 2)
-
-                    strokeWidth: -1
-                    fillColor: Theme.Palette.background
-
-                    startX: 0; startY: 0
-                    PathLine { x: bg.w; y: 0 }
-                    PathArc { x: bg.w - bg.er; y: bg.erY; radiusX: bg.er; radiusY: bg.erY; direction: PathArc.Counterclockwise }
-                    PathLine { x: bg.w - bg.er; y: bg.h - bg.brY }
-                    PathArc { x: bg.w - bg.er - bg.br; y: bg.h; radiusX: bg.br; radiusY: bg.brY }
-                    PathLine { x: bg.er + bg.br; y: bg.h }
-                    PathArc { x: bg.er; y: bg.h - bg.brY; radiusX: bg.br; radiusY: bg.brY }
-                    PathLine { x: bg.er; y: bg.erY }
-                    PathArc { x: 0; y: 0; radiusX: bg.er; radiusY: bg.erY; direction: PathArc.Counterclockwise }
+                Text {
+                    text: "Active programs"
+                    color: Theme.Palette.on_surface
+                    font.family: root.fontFamily
+                    font.pixelSize: root.titleFontSize
+                    font.bold: true
+                    Layout.bottomMargin: root.menuSpacing
                 }
-            }
 
-            Item {
-                x: root.earRadius
-                width: root.menuWidth
-                height: menu.revealHeight
-                clip: true
+                Text {
+                    visible: SystemTray.items.values.length === 0
+                    text: "Нет элементов"
+                    color: Theme.Palette.on_surface_variant
+                    font.family: root.fontFamily
+                    font.pixelSize: root.emptyFontSize
+                }
 
-                Flickable {
-                    width: parent.width - root.menuPadding * 2
-                    height: menu.fullHeight - root.menuPadding * 2
-                    x: root.menuPadding
-                    y: root.menuPadding
-                    contentHeight: content.implicitHeight
-                    boundsBehavior: Flickable.StopAtBounds
+                Repeater {
+                    model: SystemTray.items
 
-                    ColumnLayout {
-                        id: content
-                        width: parent.width
-                        spacing: root.menuSpacing
-
-                        Text {
-                            text: "Active programs"
-                            color: Theme.Palette.on_surface
-                            font.family: root.fontFamily
-                            font.pixelSize: root.titleFontSize
-                            font.bold: true
-                            Layout.bottomMargin: root.menuSpacing
-                        }
-
-                        Text {
-                            visible: SystemTray.items.values.length === 0
-                            text: "Нет элементов"
-                            color: Theme.Palette.on_surface_variant
-                            font.family: root.fontFamily
-                            font.pixelSize: root.emptyFontSize
-                        }
-
-                        Repeater {
-                            model: SystemTray.items
-
-                            TrayItem {
-                                required property var modelData
-                                Layout.fillWidth: true
-                                item: modelData
-                                onStopRequested: root.stopItem(modelData.id)
-                            }
-                        }
+                    TrayItem {
+                        required property var modelData
+                        Layout.fillWidth: true
+                        item: modelData
+                        onStopRequested: root.stopItem(modelData.id)
                     }
                 }
             }

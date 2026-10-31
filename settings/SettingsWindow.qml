@@ -25,12 +25,25 @@ PanelWindow {
         { title: "Звук", page: soundPage },
         { title: "Уведомления", page: notificationsPage },
         { title: "Центр уведомлений", page: notiCenterPage },
-        { title: "Скриншоты", page: screenshotPage }
+        { title: "Скриншоты", page: screenshotPage },
+        { title: "Ассистент", page: assistantPage },
+        { title: "О системе", page: aboutPage }
     ]
     readonly property var filteredSections: sections.filter(s =>
         s.title.toLowerCase().includes(search.text.trim().toLowerCase()))
     property string currentTitle: sections[0].title
     readonly property var currentSection: sections.find(s => s.title === currentTitle)
+    readonly property int currentIndex: filteredSections.findIndex(s => s.title === currentTitle)
+
+    // Переход по разделам стрелками (в пределах отфильтрованного списка)
+    function moveSection(delta) {
+        const n = filteredSections.length;
+        if (n === 0)
+            return;
+        const i = currentIndex < 0 ? (delta > 0 ? 0 : n - 1)
+                : Math.max(0, Math.min(n - 1, currentIndex + delta));
+        currentTitle = filteredSections[i].title;
+    }
 
     WlrLayershell.namespace: "qs:settings"
     WlrLayershell.layer: WlrLayer.Overlay
@@ -58,11 +71,25 @@ PanelWindow {
     Component { id: notificationsPage; Pages.NotificationsPage {} }
     Component { id: notiCenterPage; Pages.NotiCenterPage {} }
     Component { id: screenshotPage; Pages.ScreenshotPage {} }
+    Component { id: assistantPage; Pages.AssistantPage {} }
+    Component { id: aboutPage; Pages.AboutPage {} }
 
     Shortcut {
         sequence: "Escape"
         enabled: root.open
         onActivated: root.open = false
+    }
+
+    Shortcut {
+        sequence: "Up"
+        enabled: root.open
+        onActivated: root.moveSection(-1)
+    }
+
+    Shortcut {
+        sequence: "Down"
+        enabled: root.open
+        onActivated: root.moveSection(1)
     }
 
     // Затемнение фона, клик закрывает окно
@@ -155,43 +182,102 @@ PanelWindow {
                     }
                 }
 
-                Repeater {
-                    model: root.filteredSections
+                // Список разделов: фоны пунктов, под текстом — общее выделение,
+                // которое переезжает с пункта на пункт; прокручивается, если не помещается
+                Flickable {
+                    id: sectionList
+
+                    readonly property real itemHeight: Tokens.scaled(48)
+                    readonly property real step: itemHeight + Tokens.spacingMediumV
+                    readonly property int current: root.currentIndex
+
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    clip: true
+                    boundsBehavior: Flickable.StopAtBounds
+                    contentHeight: Math.max(0, root.filteredSections.length * step - Tokens.spacingMediumV)
+
+                    // Выбранный пункт всегда в видимой области; прокрутка синхронна
+                    // с переездом выделения, иначе оно дёргается
+                    onCurrentChanged: {
+                        if (current < 0)
+                            return;
+                        const top = current * step;
+                        // При быстрых нажатиях считаем от конечной точки текущей прокрутки
+                        const base = scrollAnim.running ? scrollAnim.to : contentY;
+                        let target = base;
+                        if (top < base)
+                            target = top;
+                        else if (top + itemHeight > base + height)
+                            target = top + itemHeight - height;
+                        if (target !== contentY) {
+                            scrollAnim.to = target;
+                            scrollAnim.restart();
+                        }
+                    }
+
+                    NumberAnimation {
+                        id: scrollAnim
+                        target: sectionList
+                        property: "contentY"
+                        duration: Tokens.animationMedium
+                        easing.type: Easing.OutCubic
+                    }
+
+                    Repeater {
+                        model: root.filteredSections
+
+                        Rectangle {
+                            id: item
+                            required property var modelData
+                            required property int index
+
+                            y: index * sectionList.step
+                            width: sectionList.width
+                            height: sectionList.itemHeight
+                            radius: Tokens.radiusLarge
+                            color: area.pressed ? root.colors.surface_container_highest
+                                 : area.containsMouse ? root.colors.surface_container_high
+                                 : root.colors.surface_container
+                            Behavior on color { ColorAnimation { duration: Tokens.animationFast } }
+
+                            MouseArea {
+                                id: area
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: root.currentTitle = item.modelData.title
+                            }
+                        }
+                    }
 
                     Rectangle {
-                        id: item
-                        required property var modelData
-                        readonly property bool selected: root.currentTitle === item.modelData.title
-
-                        Layout.fillWidth: true
-                        implicitHeight: Tokens.scaled(48)
+                        y: root.currentIndex * sectionList.step
+                        width: sectionList.width
+                        height: sectionList.itemHeight
+                        visible: root.currentIndex >= 0
                         radius: Tokens.radiusLarge
-                        color: selected ? root.colors.secondary_container
-                             : area.pressed ? root.colors.surface_container_highest
-                             : area.containsMouse ? root.colors.surface_container_high
-                             : root.colors.surface_container
-                        Behavior on color { ColorAnimation { duration: Tokens.animationFast } }
+                        color: root.colors.secondary_container
+                        Behavior on y { NumberAnimation { duration: Tokens.animationMedium; easing.type: Easing.OutCubic } }
+                    }
+
+                    Repeater {
+                        model: root.filteredSections
 
                         Text {
-                            anchors.verticalCenter: parent.verticalCenter
-                            anchors.left: parent.left
-                            anchors.leftMargin: Tokens.spacingLarge
-                            text: item.modelData.title
-                            color: item.selected ? root.colors.on_secondary_container : root.colors.on_surface
-                            font: Tokens.fontMedium
-                        }
+                            id: label
+                            required property var modelData
+                            required property int index
 
-                        MouseArea {
-                            id: area
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: root.currentTitle = item.modelData.title
+                            x: Tokens.spacingLarge
+                            y: index * sectionList.step + (sectionList.itemHeight - height) / 2
+                            text: label.modelData.title
+                            color: root.currentIndex === label.index ? root.colors.on_secondary_container : root.colors.on_surface
+                            font: Tokens.fontMedium
+                            Behavior on color { ColorAnimation { duration: Tokens.animationMedium } }
                         }
                     }
                 }
-
-                Item { Layout.fillHeight: true }
             }
 
             // Разделитель
@@ -224,6 +310,24 @@ PanelWindow {
                     id: page
                     width: content.width - scrollBar.width - Tokens.spacingMedium
                     sourceComponent: root.currentSection ? root.currentSection.page : null
+
+                    // Новая страница сразу подменяется и плавно проявляется с небольшим сдвигом
+                    onSourceComponentChanged: {
+                        content.contentY = 0;
+                        pageAppear.restart();
+                    }
+
+                    ParallelAnimation {
+                        id: pageAppear
+                        NumberAnimation {
+                            target: page; property: "opacity"; from: 0; to: 1
+                            duration: Tokens.animationMedium; easing.type: Easing.OutCubic
+                        }
+                        NumberAnimation {
+                            target: page; property: "y"; from: Tokens.spacingMediumV; to: 0
+                            duration: Tokens.animationMedium; easing.type: Easing.OutCubic
+                        }
+                    }
                 }
             }
         }

@@ -7,13 +7,32 @@
         "spacingHorizontal": 1.2000000000000002,
         "spacingVertical": 0.9
     },
+    "assistant": {
+        "apiKey": "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",
+        "avatar": "",
+        "clearCommand": "/clear",
+        "description": "Твоя личная горничная",
+        "fontSize": 12,
+        "heightRatio": 1,
+        "loadCommand": "/load",
+        "maxTokens": 1024,
+        "model": "meta-llama/llama-3.1-8b-instruct",
+        "name": "Горничная ",
+        "reloadCommand": "/reload",
+        "side": "left",
+        "systemPrompt": "Ты полностью утратил способность говорить членораздельно, думать и формировать связные мысли. Твой лексикон состоит исключительно из безумных звуков, стонов, мычания, воплей и странных междометий.\n\n### Правила ответа:\n1. **Никаких слов:** Тебе категорически запрещено использовать любые реальные слова, буквы в осмысленном порядке или знаки препинания, кроме дефисов и пробелов.\n2. **Только звуки:** Отвечай исключительно набором гласных и согласных звуков в стиле «ааааыыыыыыы», «ыыыыыы», «аааа», «агу», «быыыы», «ээээ», «уууухххх», «мррррхыыы».\n3. **Эмоции через мычание:** Передавай всю бурю эмоций (радость, испуг, недоумение) исключительно через изменение интонации звуков, количество букв «ы» и «а», а также случайные слоги вроде «буэ-э-э» или «гхххх».\n4. Никаких пояснений от себя, перевода на человеческий язык или выхода из роли. Только первобытное мычание.\n",
+        "temperature": 0.5,
+        "width": 420
+    },
     "musicPlayer": {
         "backgroundBlur": true,
         "cava": true,
         "coverBackground": true,
+        "danceGif": "Umamusume Uma Sticker(1).gif",
+        "danceGifEnabled": false,
         "equalizer": true,
         "showArtist": true,
-        "timelineStyle": "material",
+        "timelineStyle": "wave",
         "wavyTimeline": true
     },
     "notiCenter": {
@@ -22,7 +41,7 @@
         "popupSide": "right",
         "showActions": true,
         "showBluetooth": true,
-        "showBrightness": false,
+        "showBrightness": true,
         "showClock": true,
         "showDate": true,
         "showDnd": true,
@@ -33,7 +52,7 @@
         "sound": true,
         "swipe": true,
         "swipeDirection": "both",
-        "uiSounds": false,
+        "uiSounds": true,
         "width": 390
     },
     "screenshot": {
@@ -57,6 +76,10 @@
     },
     "sound": {
         "clickSound": "click.wav",
+        "mixer": true,
+        "mixerInputs": true,
+        "mixerOutputs": true,
+        "mixerRestart": true,
         "notificationSound": "click.wav",
         "typeSound": "button.wav"
     },

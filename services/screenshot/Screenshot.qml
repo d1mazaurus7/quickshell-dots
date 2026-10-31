@@ -18,6 +18,9 @@ Scope {
 
     // PNG сначала пишется во временный файл, затем копируется/сохраняется
     readonly property string tempPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/qs-screenshot.png"
+    // Замороженный кадр монитора от grim. ScreencopyView на Niri не используется:
+    // его wlr-screencopy роняет Qt Wayland (quickshell#1202)
+    readonly property string framePath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/qs-screenshot-frame.png"
     readonly property string saveDir: (Quickshell.env("XDG_PICTURES_DIR") || Quickshell.env("HOME") + "/Pictures") + "/Screenshots"
 
     function screenByName(name: string): var {
@@ -61,7 +64,7 @@ Scope {
         target: "screenshot"
 
         function capture(): void {
-            if (!root.active)
+            if (!root.active && !grabFrame.running)
                 focusedOutput.running = true;
         }
         function close(): void { root.requestClose(); }
@@ -76,12 +79,24 @@ Scope {
                     const out = JSON.parse(text);
                     if (out && out.name && root.screenByName(out.name)) {
                         root.output = out.name;
-                        root.active = true;
+                        grabFrame.running = true;
                     }
                 } catch (e) {
                     console.warn("screenshot: не удалось разобрать focused-output:", e);
                 }
             }
+        }
+    }
+
+    // Оверлей открывается, когда кадр уже записан
+    Process {
+        id: grabFrame
+        command: ["grim", "-o", root.output, root.framePath]
+        onExited: code => {
+            if (code === 0)
+                root.active = true;
+            else
+                console.warn("screenshot: grim завершился с кодом", code);
         }
     }
 

@@ -25,11 +25,23 @@ Rectangle {
     property int animShrink: 220
     property string fontFamily: "JetBrainsMono Nerd Font"
 
-    // Играющий плеер в приоритете, иначе первый доступный
+    // Последний игравший плеер — чтобы после паузы управление не перескакивало на другой
+    property MprisPlayer lastActive: null
+
+    // Играющий плеер в приоритете, затем последний игравший, иначе первый доступный
     readonly property MprisPlayer player: {
         const list = Mpris.players.values;
-        return list.find(p => p.isPlaying) ?? list[0] ?? null;
+        return list.find(p => p.isPlaying)
+            ?? (list.includes(lastActive) ? lastActive : null)
+            ?? list[0] ?? null;
     }
+    readonly property bool playerPlaying: player?.isPlaying ?? false
+
+    function rememberActive() {
+        if (playerPlaying) lastActive = player;
+    }
+    onPlayerChanged: rememberActive()
+    onPlayerPlayingChanged: rememberActive()
 
     function formatTime(sec) {
         const t = Math.max(0, Math.floor(sec));
