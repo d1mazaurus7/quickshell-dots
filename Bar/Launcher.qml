@@ -4,6 +4,7 @@ import Quickshell.Wayland
 import QtQuick
 import QtQuick.Layouts
 import "../theme" as Theme
+import "../shell/config"
 import "../shell/theme"
 import "../components/animations" as Flow
 import "EmojiData.js" as EmojiData
@@ -57,6 +58,18 @@ PanelWindow {
         open = false;
     }
 
+    // Звук печати
+    readonly property string typeSoundPath: Qt.resolvedUrl("../assets/sounds/" + Config.options.sound.typeSound).toString().replace(/^file:\/\//, "")
+
+    function playTypeSound(): void {
+        if (open) typeSoundProcess.running = true;
+    }
+
+    Process {
+        id: typeSoundProcess
+        command: ["pw-play", launcher.typeSoundPath]
+    }
+
     // Режим команд: активен когда текст начинается с ">"
     property bool commandMode: searchField.text.length > 0 && searchField.text.charAt(0) === ">"
 
@@ -84,6 +97,26 @@ PanelWindow {
 
     // Поддерживаемые теги
     property bool emojiMode: tagMode && currentTag === "emoji"
+
+    // Список тег-команд для автодополнения
+    readonly property var tagCommands: [
+        { tag: "emoji", description: "Поиск эмоджи" }
+    ]
+
+    // Режим автодополнения: после "/", ещё без пробела (тег ещё печатается)
+    property bool tagSuggestMode: tagMode && searchField.text.substring(1).indexOf(" ") === -1
+
+    // Отфильтрованные предложения по текущему тегу
+    property var tagSuggestions: {
+        if (!tagSuggestMode) return [];
+        var prefix = currentTag.toLowerCase();
+        var result = [];
+        for (var i = 0; i < tagCommands.length; i++) {
+            if (prefix === "" || tagCommands[i].tag.toLowerCase().indexOf(prefix) === 0)
+                result.push(tagCommands[i]);
+        }
+        return result;
+    }
 
     // Процесс для запуска команд в foot
     Process {
@@ -152,7 +185,7 @@ PanelWindow {
                             if (launcher.commandMode) return commandIndicator.width + 18;
                             return 10;
                         }
-                        anchors.rightMargin: searchField.text.length > 0 ? clearBtn.width + 16 : 10
+                        anchors.rightMargin: searchField.text.length > 0 ? clearBtn.width + 26 : 10
                         verticalAlignment: Text.AlignVCenter
                         color: Theme.Palette.on_surface
                         font.family: "JetBrains Mono"
@@ -160,7 +193,15 @@ PanelWindow {
                         clip: true
 
                         Keys.onUpPressed: {
-                            if (launcher.emojiMode) {
+                            if (launcher.tagSuggestMode) {
+                                if (tagList.count > 0) {
+                                    if (tagList.currentIndex > 0) {
+                                        tagList.decrementCurrentIndex();
+                                    } else {
+                                        tagList.currentIndex = tagList.count - 1;
+                                    }
+                                }
+                            } else if (launcher.emojiMode) {
                                 emojiGrid.navigateUp();
                             } else if (appList.count > 0) {
                                 if (appList.currentIndex > 0) {
@@ -172,7 +213,15 @@ PanelWindow {
                         }
 
                         Keys.onDownPressed: {
-                            if (launcher.emojiMode) {
+                            if (launcher.tagSuggestMode) {
+                                if (tagList.count > 0) {
+                                    if (tagList.currentIndex < tagList.count - 1) {
+                                        tagList.incrementCurrentIndex();
+                                    } else {
+                                        tagList.currentIndex = 0;
+                                    }
+                                }
+                            } else if (launcher.emojiMode) {
                                 emojiGrid.navigateDown();
                             } else if (appList.count > 0) {
                                 if (appList.currentIndex < appList.count - 1) {
@@ -202,6 +251,8 @@ PanelWindow {
                                     commandProcess.running = true;
                                     launcher.closeLauncher();
                                 }
+                            } else if (launcher.tagSuggestMode) {
+                                tagList.completeCurrent();
                             } else if (launcher.emojiMode) {
                                 emojiGrid.selectCurrent();
                             } else if (appList.currentIndex >= 0 && appList.currentItem) {
@@ -212,6 +263,17 @@ PanelWindow {
 
                         Keys.onEscapePressed: {
                             launcher.closeLauncher();
+                        }
+
+                        Keys.onTabPressed: {
+                            if (launcher.tagSuggestMode && tagList.count > 0)
+                                tagList.completeCurrent();
+                        }
+
+                        Keys.onPressed: (event) => {
+                            if (event.text.length > 0 || event.key === Qt.Key_Backspace) {
+                                launcher.playTypeSound();
+                            }
                         }
 
                         Text {
@@ -242,41 +304,41 @@ PanelWindow {
                             id: tagIndicator
                             visible: false
                         }
+                    }
 
-                        // Кнопка очистки строки ввода
-                        MouseArea {
-                            id: clearBtn
-                            anchors.right: parent.right
-                            anchors.verticalCenter: parent.verticalCenter
-                            anchors.rightMargin: 10
-                            width: 100
-                            height: 24
-                            hoverEnabled: true
-                            visible: searchField.text.length > 0
-                            cursorShape: Qt.PointingHandCursor
+                    // Кнопка очистки строки ввода (у правого края)
+                    MouseArea {
+                        id: clearBtn
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.rightMargin: 10
+                        width: 100
+                        height: 24
+                        hoverEnabled: true
+                        visible: searchField.text.length > 0
+                        cursorShape: Qt.PointingHandCursor
 
-                            Rectangle {
-                                anchors.fill: parent
-                                radius: Tokens.radius(12)
-                                color: clearBtn.containsPress
-                                       ? Theme.Palette.surface_container_highest
-                                       : (clearBtn.containsMouse
-                                          ? Theme.Palette.surface_container_highest
-                                          : Theme.Palette.surface_container_high)
-                            }
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: Tokens.radius(12)
+                            color: clearBtn.containsPress
+                                   ? Theme.Palette.surface_container_highest
+                                   : (clearBtn.containsMouse
+                                      ? Theme.Palette.surface_container_highest
+                                      : Theme.Palette.surface_container_high)
+                        }
 
-                            Text {
-                                anchors.centerIn: parent
-                                text: "Отчистить"
-                                color: Theme.Palette.on_surface_variant
-                                font.family: "JetBrains Mono"
-                                font.pointSize: 10
-                            }
+                        Text {
+                            anchors.centerIn: parent
+                            text: "Отчистить"
+                            color: Theme.Palette.on_surface_variant
+                            font.family: "JetBrains Mono"
+                            font.pointSize: 10
+                        }
 
-                            onClicked: {
-                                searchField.text = "";
-                                searchField.forceActiveFocus();
-                            }
+                        onClicked: {
+                            searchField.text = "";
+                            searchField.forceActiveFocus();
                         }
                     }
                 }
@@ -443,6 +505,91 @@ PanelWindow {
                     }
                 }
 
+                // Автодополнение тег-команд ("/" — список всех)
+                ListView {
+                    id: tagList
+                    anchors.fill: parent
+                    anchors.leftMargin: 12
+                    anchors.rightMargin: 12
+                    anchors.topMargin: 2
+                    anchors.bottomMargin: 2
+                    spacing: 4
+                    visible: launcher.tagSuggestMode && count > 0
+
+                    highlight: Flow.FlowHighlight {
+                        view: tagList
+                    }
+
+                    model: launcher.tagSuggestions
+
+                    onModelChanged: currentIndex = 0
+
+                    function completeCurrent(): void {
+                        if (currentIndex >= 0 && currentItem) {
+                            searchField.text = "/" + currentItem.modelData.tag + " ";
+                            searchField.cursorPosition = searchField.text.length;
+                        }
+                    }
+
+                    delegate: MouseArea {
+                        id: tagDelegate
+                        x: 4
+                        width: tagList.width - 8
+                        height: 48
+
+                        required property var modelData
+
+                        hoverEnabled: true
+
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: Tokens.radius(10)
+                            color: tagDelegate.ListView.isCurrentItem
+                                   ? "transparent"
+                                   : (parent.containsMouse
+                                      ? Theme.Palette.surface_container_high
+                                      : Theme.Palette.surface_container)
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.leftMargin: 12
+                                anchors.rightMargin: 12
+                                spacing: 12
+
+                                Text {
+                                    color: tagDelegate.ListView.isCurrentItem
+                                           ? Flow.FlowHighlightAnimation.selectedTextColor
+                                           : Theme.Palette.primary
+                                    font.family: "JetBrains Mono"
+                                    font.pointSize: 11
+                                    font.bold: true
+                                    text: "/" + tagDelegate.modelData.tag
+                                }
+
+                                Text {
+                                    Layout.fillWidth: true
+                                    text: tagDelegate.modelData.description
+                                    color: tagDelegate.ListView.isCurrentItem
+                                           ? Flow.FlowHighlightAnimation.selectedTextColor
+                                           : Theme.Palette.on_surface_variant
+                                    font.family: "JetBrains Mono"
+                                    font.pointSize: 10
+                                    elide: Text.ElideRight
+                                }
+                            }
+                        }
+
+                        onClicked: {
+                            tagList.currentIndex = index;
+                            tagList.completeCurrent();
+                        }
+
+                        onContainsMouseChanged: {
+                            if (containsMouse) tagList.currentIndex = index;
+                        }
+                    }
+                }
+
                 ListView {
                     id: appList
                     anchors.fill: parent
@@ -452,7 +599,7 @@ PanelWindow {
                     anchors.bottomMargin: 2
                     spacing: 4
                     clip: false
-                    visible: !launcher.commandMode && !launcher.emojiMode
+                    visible: !launcher.commandMode && !launcher.emojiMode && !launcher.tagSuggestMode
 
                     highlight: Flow.FlowHighlight {
                         view: appList

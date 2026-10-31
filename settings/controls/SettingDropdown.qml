@@ -129,10 +129,6 @@ Item {
                     selectionColor: root.colors.primary
                     selectedTextColor: root.colors.on_primary
                     font: Tokens.fontMedium
-                    Keys.onEscapePressed: event => {
-                        root.expanded = false;
-                        event.accepted = true;
-                    }
 
                     Text {
                         anchors.verticalCenter: parent.verticalCenter

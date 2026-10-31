@@ -6,6 +6,7 @@ import Quickshell.Services.Mpris
 import Quickshell.Widgets
 import "../../theme" as Theme
 import "../../shell/theme"
+import "../../shell/config"
 import "../../components/animations" as Anim
 
 // Окно плеера с эквалайзером, выплывающее из бара под модулем музыки
@@ -19,6 +20,7 @@ Anim.BarDropdown {
     // Место вокруг обложки под визуализатор
     readonly property int ringRoom: Tokens.scaled(22)
     readonly property int coverSize: Tokens.scaled(132)
+    readonly property var cfg: Config.options.musicPlayer
 
     function formatTime(sec) {
         const t = Math.max(0, Math.floor(sec));
@@ -37,6 +39,11 @@ Anim.BarDropdown {
         onTriggered: root.player.positionChanged()
     }
 
+    TrackPosition {
+        id: trackPos
+        player: root.player
+    }
+
     ClippingRectangle {
         id: card
         width: parent.width
@@ -44,7 +51,7 @@ Anim.BarDropdown {
         radius: Tokens.radius(18)
         color: Theme.Palette.surface_container
 
-        // Фон: размытая обложка
+        // Фон: обложка, размытая при cfg.backgroundBlur
         Image {
             id: art
             anchors.fill: parent
@@ -58,9 +65,9 @@ Anim.BarDropdown {
         MultiEffect {
             anchors.fill: parent
             source: art
-            visible: art.status === Image.Ready
+            visible: root.cfg.coverBackground && art.status === Image.Ready
             autoPaddingEnabled: false
-            blurEnabled: true
+            blurEnabled: root.cfg.backgroundBlur
             blur: 1.0
             blurMax: 64
             saturation: 0.2
@@ -69,15 +76,16 @@ Anim.BarDropdown {
         Rectangle {
             anchors.fill: parent
             color: Theme.Palette.surface
-            opacity: art.status === Image.Ready ? 0.6 : 0
+            opacity: root.cfg.coverBackground && art.status === Image.Ready ? 0.6 : 0
         }
 
         // Спектр вокруг обложки — под обложкой и текстом
         CavaSource {
             id: cava
-            active: root.visible && (root.player?.isPlaying ?? false)
+            active: root.cfg.cava && root.visible && (root.player?.isPlaying ?? false)
         }
         CavaRing {
+            visible: root.cfg.cava
             x: root.inner + root.ringRoom + root.coverSize / 2 - width / 2
             y: root.inner + root.ringRoom + root.coverSize / 2 - height / 2
             values: cava.values
@@ -148,6 +156,7 @@ Anim.BarDropdown {
                             }
                             MarqueeText {
                                 width: parent.width
+                                visible: root.cfg.showArtist
                                 text: root.player?.trackArtist || "Неизвестный исполнитель"
                                 color: Theme.Palette.on_surface_variant
                                 font.family: Tokens.typography.family
@@ -172,7 +181,7 @@ Anim.BarDropdown {
                         id: time
                         anchors.right: parent.right
                         visible: root.player !== null && root.player.lengthSupported && root.player.length > 0
-                        text: root.player ? root.formatTime(root.player.position) + " / " + root.formatTime(root.player.length) : ""
+                        text: root.player ? root.formatTime(trackPos.position) + " / " + root.formatTime(root.player.length) : ""
                         color: Theme.Palette.on_surface_variant
                         font.family: Tokens.typography.family
                         font.pixelSize: Tokens.scaled(13)
@@ -183,8 +192,10 @@ Anim.BarDropdown {
                         id: wave
                         width: parent.width
                         playing: root.player?.isPlaying ?? false
+                        wavy: root.cfg.wavyTimeline
+                        style: root.cfg.timelineStyle
                         seekable: root.player !== null && root.player.canSeek && root.player.length > 0
-                        value: root.player && root.player.length > 0 ? root.player.position / root.player.length : 0
+                        value: root.player && root.player.length > 0 ? trackPos.position / root.player.length : 0
                         onSeekRequested: v => root.player.position = v * root.player.length
                     }
                 }
@@ -193,6 +204,7 @@ Anim.BarDropdown {
             // Полосы эквалайзера
             Row {
                 anchors.horizontalCenter: parent.horizontalCenter
+                visible: root.cfg.equalizer
                 spacing: Tokens.scaled(14)
 
                 Repeater {
@@ -213,6 +225,7 @@ Anim.BarDropdown {
             // Пресеты
             Column {
                 width: parent.width
+                visible: root.cfg.equalizer
                 spacing: Tokens.scaled(10)
 
                 Text {

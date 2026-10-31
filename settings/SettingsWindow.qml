@@ -17,7 +17,15 @@ PanelWindow {
     // Разделы: заголовок + страница
     readonly property var sections: [
         { title: "Шрифт", page: fontPage },
-        { title: "Интерфейс", page: interfacePage }
+        { title: "Интерфейс", page: interfacePage },
+        { title: "Время", page: timePage },
+        { title: "Секундомер", page: stopwatchPage },
+        { title: "Музыкальный плеер", page: musicPlayerPage },
+        { title: "Рабочие столы", page: workspacesPage },
+        { title: "Звук", page: soundPage },
+        { title: "Уведомления", page: notificationsPage },
+        { title: "Центр уведомлений", page: notiCenterPage },
+        { title: "Скриншоты", page: screenshotPage }
     ]
     readonly property var filteredSections: sections.filter(s =>
         s.title.toLowerCase().includes(search.text.trim().toLowerCase()))
@@ -26,7 +34,8 @@ PanelWindow {
 
     WlrLayershell.namespace: "qs:settings"
     WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.keyboardFocus: open ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+    // Exclusive: Esc работает сразу, без клика по окну
+    WlrLayershell.keyboardFocus: open ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
     exclusionMode: ExclusionMode.Ignore
     color: "transparent"
 
@@ -41,6 +50,14 @@ PanelWindow {
 
     Component { id: fontPage; Pages.FontPage {} }
     Component { id: interfacePage; Pages.InterfacePage {} }
+    Component { id: timePage; Pages.TimePage {} }
+    Component { id: stopwatchPage; Pages.StopwatchPage {} }
+    Component { id: musicPlayerPage; Pages.MusicPlayerPage {} }
+    Component { id: workspacesPage; Pages.WorkspacesPage {} }
+    Component { id: soundPage; Pages.SoundPage {} }
+    Component { id: notificationsPage; Pages.NotificationsPage {} }
+    Component { id: notiCenterPage; Pages.NotiCenterPage {} }
+    Component { id: screenshotPage; Pages.ScreenshotPage {} }
 
     Shortcut {
         sequence: "Escape"

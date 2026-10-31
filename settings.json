@@ -1,27 +1,86 @@
 {
     "appearance": {
         "animationScale": 1,
-        "borders": true,
-        "radiusScale": 0.65,
-        "scale": 1.1,
-        "spacingHorizontal": 0.7000000000000001,
-        "spacingVertical": 0.7000000000000001
+        "borders": false,
+        "radiusScale": 1.05,
+        "scale": 1,
+        "spacingHorizontal": 1.2000000000000002,
+        "spacingVertical": 0.9
+    },
+    "musicPlayer": {
+        "backgroundBlur": true,
+        "cava": true,
+        "coverBackground": true,
+        "equalizer": true,
+        "showArtist": true,
+        "timelineStyle": "material",
+        "wavyTimeline": true
+    },
+    "notiCenter": {
+        "bodyLines": 1,
+        "heightRatio": 0.9,
+        "popupSide": "right",
+        "showActions": true,
+        "showBluetooth": true,
+        "showBrightness": false,
+        "showClock": true,
+        "showDate": true,
+        "showDnd": true,
+        "showSeconds": true,
+        "showVolume": true,
+        "showWeekday": true,
+        "showWifi": true,
+        "sound": true,
+        "swipe": true,
+        "swipeDirection": "both",
+        "uiSounds": false,
+        "width": 390
+    },
+    "screenshot": {
+        "editTools": true,
+        "instant": false,
+        "notify": true,
+        "sound": true,
+        "soundFile": "quotprintscreenquot-sound.wav"
     },
     "snow": {
         "capRounding": 0.8500000000000001,
-        "driftHeight": 35,
+        "driftHeight": 150,
         "enabled": false,
         "hideGroundWithTiled": true,
-        "intensity": 1.1,
-        "shakeOff": 0.65,
-        "speed": 1,
+        "intensity": 0.30000000000000004,
+        "shakeOff": 0.9500000000000001,
+        "speed": 0.7,
         "sweep": true,
         "windowDriftHeight": 80,
         "windowDrifts": true
     },
+    "sound": {
+        "clickSound": "click.wav",
+        "notificationSound": "click.wav",
+        "typeSound": "button.wav"
+    },
+    "stopwatch": {
+        "barWidget": true,
+        "blinkIcon": true,
+        "icon": "💩",
+        "side": "left"
+    },
+    "time": {
+        "shortWeekday": true,
+        "showDate": true,
+        "showSeconds": true,
+        "showWeekday": true
+    },
     "typography": {
-        "family": "Monospace",
+        "family": "JetBrainsMono Nerd Font Mono",
         "size": 12
     },
-    "version": 1
+    "version": 1,
+    "workspaces": {
+        "hideEmpty": true,
+        "maxVisible": 6,
+        "showNumbers": false,
+        "style": "circles"
+    }
 }

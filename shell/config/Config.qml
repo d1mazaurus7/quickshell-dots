@@ -14,14 +14,34 @@ Singleton {
     // true после первой успешной загрузки (или создания) файла
     property bool ready: false
 
+    // Изменения из оболочки собираются и пишутся одной записью
+    Timer {
+        id: saveTimer
+        interval: 100
+        onTriggered: {
+            file.lastWrite = Date.now();
+            file.writeAdapter();
+        }
+    }
+
     FileView {
+        id: file
+        // Момент последней своей записи: её же событие изменения не перечитываем,
+        // иначе запоздавшее чтение старого файла откатывает свежие изменения
+        property double lastWrite: 0
+
         path: Quickshell.shellPath("settings.json")
         watchChanges: true
         // Правка файла извне — перечитываем
-        onFileChanged: reload()
+        onFileChanged: {
+            console.log("NCDBG fileChanged sinceWrite", Date.now() - lastWrite, "timer", saveTimer.running, "w", adapter.notiCenter.width);
+            if (Date.now() - lastWrite > 500 && !saveTimer.running)
+                reload();
+        }
         // Изменение свойства из оболочки — сохраняем в файл
-        onAdapterUpdated: writeAdapter()
-        onLoaded: root.ready = true
+        onAdapterUpdated: { console.log("NCDBG adapterUpdated w", adapter.notiCenter.width); saveTimer.restart(); }
+        onSaved: { console.log("NCDBG saved w", adapter.notiCenter.width); lastWrite = Date.now(); }
+        onLoaded: { console.log("NCDBG loaded w", adapter.notiCenter.width); root.ready = true; }
         onLoadFailed: error => {
             // Первый запуск: создаём файл с дефолтами
             if (error === FileViewError.FileNotFound)
@@ -73,6 +93,102 @@ Singleton {
                 property real capRounding: 0.6
                 // Доля снега, стряхиваемая при перетаскивании окна, 0..1
                 property real shakeOff: 0.7
+            }
+
+            property JsonObject time: JsonObject {
+                property bool showSeconds: false
+                property bool showDate: false
+                property bool showWeekday: false
+                // Сокращённое название дня: пн, вт, ...
+                property bool shortWeekday: true
+            }
+
+            property JsonObject stopwatch: JsonObject {
+                // Сторона экрана: "right" | "left"
+                property string side: "right"
+                // Кнопка в баре, пока секундомер запущен или на паузе
+                property bool barWidget: true
+                // Мигание значка в кнопке, пока секундомер идёт
+                property bool blinkIcon: true
+                // Значок в кнопке (любой символ/эмодзи, пусто — без значка)
+                property string icon: "⏳"
+            }
+
+            property JsonObject musicPlayer: JsonObject {
+                // Спектр cava вокруг обложки
+                property bool cava: true
+                // Обложка трека на фоне окна плеера
+                property bool coverBackground: true
+                property bool backgroundBlur: true
+                // Бегущие волны на таймлайне; выкл — ровная полоса
+                property bool wavyTimeline: true
+                // Вид таймлайна: "wave" — залитые волны | "material" — одна волнистая линия
+                property string timelineStyle: "wave"
+                property bool showArtist: true
+                // Полосы эквалайзера и пресеты
+                property bool equalizer: true
+            }
+
+            property JsonObject workspaces: JsonObject {
+                // Номер рабочего стола в каждой ячейке
+                property bool showNumbers: false
+                // Скрывать рабочие столы без окон
+                property bool hideEmpty: true
+                // Сколько ячеек показывать; недостающие добираются пустыми, активный всегда виден
+                property int maxVisible: 8
+                // Стиль ячеек: "circles" — круги, активный пилюля | "squares" — квадраты с закруглением
+                property string style: "circles"
+            }
+
+            property JsonObject notiCenter: JsonObject {
+                // Сторона экрана для всплывающих уведомлений: "right" | "left"
+                property string popupSide: "right"
+                // Звук нового уведомления (пока заглушка)
+                property bool sound: true
+                // Смахивание уведомлений мышью
+                property bool swipe: true
+                // Направление смахивания: "both" | "right" | "left"
+                property string swipeDirection: "both"
+                // Ширина панели центра, лог. px
+                property int width: 460
+                // Высота панели — доля доступной высоты экрана, 0.4..1
+                property real heightRatio: 1.0
+                property bool showClock: true
+                property bool showSeconds: true
+                property bool showDate: true
+                property bool showWeekday: true
+                property bool showWifi: true
+                property bool showBluetooth: true
+                property bool showDnd: true
+                property bool showBrightness: true
+                property bool showVolume: true
+                // Максимум строк текста в карточке уведомления
+                property int bodyLines: 4
+                // Кнопки действий в уведомлениях
+                property bool showActions: true
+                // Звуки нажатий в центре
+                property bool uiSounds: true
+            }
+
+            property JsonObject sound: JsonObject {
+                // Звук печати в лаунчере (имя файла из assets/sounds)
+                property string typeSound: "type.wav"
+                // Звук клика (пока не интегрирован)
+                property string clickSound: "click.wav"
+                // Звук уведомления (пока не интегрирован)
+                property string notificationSound: "button.wav"
+            }
+
+            property JsonObject screenshot: JsonObject {
+                // Уведомление после снимка
+                property bool notify: true
+                // Кисть, ластик и размытие на панели
+                property bool editTools: true
+                // Снимок сразу после выделения, без панели
+                property bool instant: false
+                // Звук снимка (файл из assets/sounds/screenshot)
+                property bool sound: false
+                property string soundFile: ""
             }
         }
     }

@@ -6,6 +6,7 @@ import Quickshell.Networking
 import Quickshell.Services.Pipewire
 import "../../theme" as Theme
 import "../../shell/theme"
+import "../../shell/config"
 import "../../components/animations" as Anim
 
 // Центр уведомлений: панель справа почти на всю высоту экрана.
@@ -22,9 +23,11 @@ Item {
     property string openOutput: ""
     // IPC "noti-center" регистрирует только один экземпляр.
     property bool ipcEnabled: false
+    // Общее состояние уведомлений (NotificationState).
+    required property var notifications
 
-    // Ширина панели центра уведомлений — меняй здесь.
-    property int panelWidth: 460
+    readonly property var cfg: Config.options.notiCenter
+    property int panelWidth: cfg.width
     // Масштаб всех размеров относительно базового макета шириной 380.
     readonly property real s: panelWidth / 380
 
@@ -52,6 +55,8 @@ Item {
     }
 
     function play(sound: string): void {
+        if (!cfg.uiSounds)
+            return;
         Quickshell.execDetached(["pw-play", Quickshell.shellPath("assets/sounds/" + sound + ".wav")]);
     }
 
@@ -169,6 +174,9 @@ Item {
         anchorItem: root
         open: root.open
         contentWidth: root.panelWidth
+        // Не меньше максимума из настроек: ширина и высота меняются плавно, без ресайза окна
+        maxContentWidth: 640
+        maxHeight: root.screen.height - root.barHeight
         padding: 16 * root.s
         alignRight: true
         onDismissed: if (root.open) root.openOutputRequested("")
@@ -176,28 +184,38 @@ Item {
         Item {
             id: panel
             width: parent.width
-            height: root.screen.height - root.barHeight - dropdown.padding * 2 - 24 * root.s
+            height: (root.screen.height - root.barHeight - dropdown.padding * 2 - 24 * root.s) * root.cfg.heightRatio
 
             Column {
                 id: quick
                 width: parent.width
                 spacing: 12 * root.s
 
+                // Включение/выключение блоков в настройках — без рывков
+                move: Transition {
+                    NumberAnimation { properties: "y"; duration: Tokens.animationMedium; easing.type: Easing.OutCubic }
+                }
+                add: Transition {
+                    NumberAnimation { properties: "opacity"; from: 0; to: 1; duration: Tokens.animationMedium; easing.type: Easing.OutCubic }
+                }
+
                 // Время, дата, день недели
                 Item {
                     width: parent.width
                     height: timeCol.height
+                    visible: root.cfg.showClock
 
                     Column {
                         id: timeCol
                         Text {
-                            text: Qt.formatDateTime(clock.date, "HH:mm:ss")
+                            text: Qt.formatDateTime(clock.date, root.cfg.showSeconds ? "HH:mm:ss" : "HH:mm")
                             color: Theme.Palette.on_surface
                             font.family: "JetBrainsMono Nerd Font"
                             font.pixelSize: Math.round(40 * root.s)
                             font.weight: Font.Light
                         }
                         Text {
+                            visible: root.cfg.showDate
                             text: clock.date.toLocaleDateString(Qt.locale(), "d MMMM yyyy")
                             color: Theme.Palette.on_surface_variant
                             font.family: "JetBrainsMono Nerd Font"
@@ -206,6 +224,7 @@ Item {
                     }
 
                     Text {
+                        visible: root.cfg.showWeekday
                         anchors.right: parent.right
                         anchors.top: parent.top
                         anchors.topMargin: 8 * root.s
@@ -222,6 +241,7 @@ Item {
                     id: tiles
                     width: parent.width
                     height: 56 * root.s
+                    visible: root.cfg.showWifi || root.cfg.showBluetooth
 
                     readonly property real gap: 10 * root.s
                     readonly property real base: (width - gap) / 2
@@ -229,6 +249,9 @@ Item {
                     readonly property string pressedTile: wifiTile.down ? "wifi" : btTile.down ? "bluetooth" : ""
 
                     function tileWidth(name: string): real {
+                        // Одна плитка — на всю ширину
+                        if (!root.cfg.showWifi || !root.cfg.showBluetooth)
+                            return width;
                         if (pressedTile === "")
                             return base;
                         return pressedTile === name ? base + grow : base - grow;
@@ -236,6 +259,7 @@ Item {
 
                     Tile {
                         id: wifiTile
+                        visible: root.cfg.showWifi
                         s: root.s
                         width: tiles.tileWidth("wifi")
                         title: "Wi-Fi"
@@ -254,6 +278,7 @@ Item {
 
                     Tile {
                         id: btTile
+                        visible: root.cfg.showBluetooth
                         s: root.s
                         anchors.right: parent.right
                         width: tiles.tileWidth("bluetooth")
@@ -275,9 +300,25 @@ Item {
                     }
                 }
 
+                Tile {
+                    s: root.s
+                    width: parent.width
+                    height: 56 * root.s
+                    visible: root.cfg.showDnd
+                    expandable: false
+                    title: "Не беспокоить"
+                    active: root.notifications.dnd
+                    subtitle: active ? "Включено" : "Выключено"
+                    onToggled: {
+                        root.notifications.dnd = !root.notifications.dnd;
+                        root.play(root.notifications.dnd ? "power_on" : "power_off");
+                    }
+                }
+
                 Pill {
                     s: root.s
                     width: parent.width
+                    visible: root.cfg.showBrightness
                     label: "Яркость"
                     available: root.brightnessAvailable
                     value: root.brightness
@@ -288,11 +329,118 @@ Item {
                 Pill {
                     s: root.s
                     width: parent.width
+                    visible: root.cfg.showVolume
                     label: root.sink && root.sink.audio && root.sink.audio.muted ? "Громкость (без звука)" : "Громкость"
                     available: !!(root.sink && root.sink.audio)
                     value: available ? Math.min(1, root.sink.audio.volume) : 0
                     onMoved: v => root.sink.audio.volume = v
                     onScrolled: root.play("button")
+                }
+            }
+
+            // Уведомления: заголовок, очистка, список
+            Item {
+                id: notiArea
+                // Список плавно следует за высотой блока быстрых настроек
+                property real quickHeight: quick.height
+                Behavior on quickHeight { NumberAnimation { duration: Tokens.animationMedium; easing.type: Easing.OutCubic } }
+                anchors.top: parent.top
+                anchors.topMargin: quickHeight + 20 * root.s
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+
+                readonly property int count: root.notifications.history.count
+                readonly property var swipeGroup: QtObject {
+                    property int activeIndex: -1
+                    property real offset: 0
+                    property bool detached: false
+                }
+
+                Text {
+                    anchors.verticalCenter: clearBtn.verticalCenter
+                    text: "Уведомления"
+                    color: Theme.Palette.on_surface
+                    font.family: "JetBrainsMono Nerd Font"
+                    font.pixelSize: Math.round(16 * root.s)
+                }
+
+                Rectangle {
+                    id: clearBtn
+                    anchors.right: parent.right
+                    width: 36 * root.s
+                    height: width
+                    radius: height / 2
+                    opacity: notiArea.count > 0 ? 1 : 0
+                    visible: opacity > 0
+                    color: clearArea.pressed ? Theme.Palette.surface_container_highest
+                        : clearArea.containsMouse ? Theme.Palette.surface_container_high
+                        : Theme.Palette.surface_container
+                    Behavior on color { ColorAnimation { duration: 120 } }
+                    Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "󰆴"
+                        color: Theme.Palette.on_surface
+                        font.family: "JetBrainsMono Nerd Font"
+                        font.pixelSize: Math.round(18 * root.s)
+                    }
+
+                    MouseArea {
+                        id: clearArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onPressed: root.play("click")
+                        onClicked: root.notifications.clearAll()
+                    }
+                }
+
+                Text {
+                    anchors.centerIn: notiFlick
+                    visible: notiArea.count === 0
+                    text: "Здесь пусто. Возвращайся позже"
+                    color: Theme.Palette.on_surface_variant
+                    font.family: "JetBrainsMono Nerd Font"
+                    font.pixelSize: Math.round(13 * root.s)
+                }
+
+                Flickable {
+                    id: notiFlick
+                    anchors.top: clearBtn.bottom
+                    anchors.topMargin: 12 * root.s
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    clip: true
+                    contentHeight: notiList.height
+                    boundsBehavior: Flickable.StopAtBounds
+
+                    Column {
+                        id: notiList
+                        width: parent.width
+                        spacing: 10 * root.s
+
+                        move: Transition {
+                            NumberAnimation { properties: "y"; duration: Tokens.animationMedium; easing.type: Easing.OutCubic }
+                        }
+                        add: Transition {
+                            NumberAnimation { properties: "opacity"; from: 0; to: 1; duration: Tokens.animationMedium; easing.type: Easing.OutCubic }
+                        }
+
+                        Repeater {
+                            model: root.notifications.history
+                            NotificationCard {
+                                required property int nid
+                                required property int index
+                                notification: root.notifications.find(nid)
+                                s: root.s
+                                group: notiArea.swipeGroup
+                                listIndex: index
+                            }
+                        }
+                    }
                 }
             }
 
@@ -584,6 +732,8 @@ Item {
         property string title
         property string subtitle
         property bool active
+        // Кнопка разворота справа
+        property bool expandable: true
         readonly property bool down: mainArea.pressed || arrowArea.pressed
         readonly property color onColor: active ? Theme.Palette.on_primary : Theme.Palette.on_surface
 
@@ -611,6 +761,8 @@ Item {
                 anchors.fill: parent
                 topLeftRadius: Tokens.radius(16) * tile.s
                 bottomLeftRadius: Tokens.radius(16) * tile.s
+                topRightRadius: tile.expandable ? 0 : Tokens.radius(16) * tile.s
+                bottomRightRadius: tile.expandable ? 0 : Tokens.radius(16) * tile.s
                 color: tile.onColor
                 opacity: mainArea.pressed ? 0.12 : mainArea.containsMouse ? 0.08 : 0
                 Behavior on opacity { NumberAnimation { duration: 120 } }
@@ -655,7 +807,8 @@ Item {
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.bottom: parent.bottom
-            width: 40 * tile.s
+            width: tile.expandable ? 40 * tile.s : 0
+            visible: tile.expandable
 
             Rectangle {
                 anchors.fill: parent
@@ -761,7 +914,7 @@ Item {
                                 actionRow.pressedIndex = -1;
                         }
                         // id root из inline-компонента недоступен — тот же вызов, что в root.play().
-                        onPressed: Quickshell.execDetached(["pw-play", Quickshell.shellPath("assets/sounds/click.wav")])
+                        onPressed: if (Config.options.notiCenter.uiSounds) Quickshell.execDetached(["pw-play", Quickshell.shellPath("assets/sounds/click.wav")])
                         onClicked: actionRow.activated(btn.index)
                     }
                 }

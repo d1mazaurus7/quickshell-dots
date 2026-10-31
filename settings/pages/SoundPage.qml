@@ -1,0 +1,80 @@
+pragma ComponentBehavior: Bound
+import QtQuick
+import QtQuick.Layouts
+import "../../shell/config"
+import "../../shell/theme"
+import "../controls"
+
+// Раздел «Звук»: Config.options.sound
+ColumnLayout {
+    id: page
+
+    readonly property var colors: Tokens.colors
+    readonly property var sound: Config.options.sound
+    // Все звуки из assets/sounds
+    readonly property var sounds: [
+        "button.wav",
+        "click.wav",
+        "list.wav",
+        "power_off.wav",
+        "power_on.wav",
+        "sfx.wav",
+        "transition_serp.wav",
+        "type.wav"
+    ]
+
+    spacing: Tokens.spacingMediumV
+
+    Text {
+        Layout.bottomMargin: Tokens.spacingMediumV
+        text: "Звук"
+        color: page.colors.on_surface
+        font.family: Tokens.fontLarge.family
+        font.pixelSize: Tokens.fontLarge.pixelSize + Tokens.scaled(4)
+    }
+
+    SettingRow {
+        z: typeDropdown.expanded ? 1 : 0
+        title: "Звук печати"
+        description: "Звук при наборе текста в лаунчере"
+
+        SettingDropdown {
+            id: typeDropdown
+            model: page.sounds
+            currentValue: page.sound.typeSound
+            searchable: true
+            popupHeight: Tokens.scaled(180)
+            onActivated: value => page.sound.typeSound = value
+        }
+    }
+
+    SettingRow {
+        z: clickDropdown.expanded ? 1 : 0
+        title: "Звук клика"
+        description: "Звук нажатия кнопок скриншотов"
+
+        SettingDropdown {
+            id: clickDropdown
+            model: page.sounds
+            currentValue: page.sound.clickSound
+            searchable: true
+            popupHeight: Tokens.scaled(180)
+            onActivated: value => page.sound.clickSound = value
+        }
+    }
+
+    SettingRow {
+        z: notifyDropdown.expanded ? 1 : 0
+        title: "Звук уведомления"
+        description: "Пока не интегрирован"
+
+        SettingDropdown {
+            id: notifyDropdown
+            model: page.sounds
+            currentValue: page.sound.notificationSound
+            searchable: true
+            popupHeight: Tokens.scaled(180)
+            onActivated: value => page.sound.notificationSound = value
+        }
+    }
+}

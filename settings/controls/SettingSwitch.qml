@@ -1,4 +1,5 @@
 import QtQuick
+import Quickshell
 import "../../shell/theme"
 
 // Переключатель в стиле Material: checked — текущее значение (привязать к Config),
@@ -41,6 +42,9 @@ Rectangle {
         anchors.fill: parent
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
-        onClicked: root.toggled(!root.checked)
+        onClicked: {
+            Quickshell.execDetached(["pw-play", Quickshell.shellPath("assets/sounds/sfx.wav")]);
+            root.toggled(!root.checked);
+        }
     }
 }

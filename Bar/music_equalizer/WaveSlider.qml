@@ -11,6 +11,10 @@ Item {
     property real value: 0
     property bool playing: false
     property bool seekable: true
+    // false — проигранная часть ровной полосой
+    property bool wavy: true
+    // "wave" — две залитые волны | "material" — одна волнистая линия в стиле Material You
+    property string style: "wave"
 
     signal seekRequested(real value)
 
@@ -26,7 +30,7 @@ Item {
     }
 
     // Волна затухает на паузе и при перетаскивании
-    property real amplitude: playing && !dragging ? 1 : 0
+    property real amplitude: wavy && playing && !dragging ? 1 : 0
     Behavior on amplitude { NumberAnimation { duration: Tokens.animationSlow; easing.type: Easing.OutCubic } }
     property real phase: 0
 
@@ -37,6 +41,7 @@ Item {
     onSmoothChanged: canvas.requestPaint()
     onAmplitudeChanged: canvas.requestPaint()
     onWidthChanged: canvas.requestPaint()
+    onStyleChanged: canvas.requestPaint()
 
     // Фаза растёт по реальному времени кадра, а не по таймеру — волна идёт без рывков
     FrameAnimation {
@@ -71,9 +76,46 @@ Item {
             ctx.fill();
         }
 
+        // Material You: проигранная часть — волнистая линия со скруглёнными концами,
+        // оставшаяся — ровная линия той же толщины
+        function paintMaterial(ctx) {
+            const pad = root.knobSize / 2;
+            const lineW = Tokens.scaled(4);
+            const mid = height / 2;
+            const px = pad + root.smooth * (width - pad * 2);
+            const amp = Tokens.scaled(3) * root.amplitude;
+            const freq = 2 * Math.PI / Tokens.scaled(32);
+
+            ctx.lineWidth = lineW;
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+
+            ctx.strokeStyle = Qt.alpha(light, 0.2).toString();
+            ctx.beginPath();
+            ctx.moveTo(px, mid);
+            ctx.lineTo(width - pad, mid);
+            ctx.stroke();
+
+            if (px - pad < 1) return;
+
+            ctx.strokeStyle = accent.toString();
+            ctx.beginPath();
+            ctx.moveTo(pad, mid);
+            for (let x = pad; x <= px; x += 1) {
+                const env = Math.max(0, Math.min(1, (x - pad) / 10, (px - x) / 10));
+                ctx.lineTo(x, mid + Math.sin(x * freq - root.phase) * amp * env);
+            }
+            ctx.stroke();
+        }
+
         onPaint: {
             const ctx = getContext("2d");
             ctx.reset();
+
+            if (root.style === "material") {
+                paintMaterial(ctx);
+                return;
+            }
 
             const pad = root.knobSize / 2;
             const trackH = Tokens.scaled(6);

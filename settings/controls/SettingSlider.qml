@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import Quickshell
 import "../../shell/theme"
 
 // Слайдер: value — текущее значение (привязать к Config),
@@ -29,6 +30,12 @@ Row {
         stepSize: root.stepSize
         snapMode: Slider.SnapAlways
         value: root.value
+
+        // Щелчок на каждом шаге при перетаскивании
+        onValueChanged: {
+            if (pressed)
+                Quickshell.execDetached(["pw-play", Quickshell.shellPath("assets/sounds/list.wav")]);
+        }
 
         onPressedChanged: {
             if (pressed)

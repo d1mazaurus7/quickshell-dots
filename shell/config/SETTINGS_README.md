@@ -19,6 +19,13 @@
 | `appearance` | `scale`, `spacingHorizontal`, `spacingVertical`, `radiusScale`, `animationScale` (real), `borders` (bool) |
 | `typography` | `family` (string), `size` (int, базовый px)            |
 | `snow`       | `enabled`, `sweep`, `hideGroundWithTiled`, `windowDrifts` (bool), `intensity`, `speed`, `capRounding`, `shakeOff` (real), `driftHeight`, `windowDriftHeight` (int, лог. px) |
+| `time`       | `showSeconds`, `showDate`, `showWeekday`, `shortWeekday` (bool) |
+| `stopwatch`  | `side` (string: `right` / `left`), `barWidget`, `blinkIcon` (bool), `icon` (string) |
+| `musicPlayer` | `cava`, `coverBackground`, `backgroundBlur`, `wavyTimeline`, `showArtist`, `equalizer` (bool), `timelineStyle` (string: `wave` / `material`) |
+| `workspaces` | `showNumbers`, `hideEmpty` (bool), `style` (string: `circles` / `squares`) |
+| `notiCenter` | `popupSide` (string: `right` / `left`), `sound` (bool, заглушка), `swipe` (bool), `swipeDirection` (string: `both` / `right` / `left`), `width`, `bodyLines` (int), `heightRatio` (real 0.4..1), `showClock`, `showSeconds`, `showDate`, `showWeekday`, `showWifi`, `showBluetooth`, `showDnd`, `showBrightness`, `showVolume`, `showActions`, `uiSounds` (bool) |
+| `sound`      | `typeSound`, `clickSound`, `notificationSound` (string, имя файла из `assets/sounds`) |
+| `screenshot` | `notify`, `editTools`, `instant`, `sound` (bool), `soundFile` (string, имя файла из `assets/sounds/screenshot`) |
 
 ## Правила
 

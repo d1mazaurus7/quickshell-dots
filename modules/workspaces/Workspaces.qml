@@ -2,23 +2,42 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import "../../theme" as Theme
+import "../../shell/config"
+import "../../shell/theme"
 
-// Рабочие столы Niri: активный — пилюля, остальные — точки. Пустые скрыты.
+// Рабочие столы Niri: активный выделен, остальные — точки. Настройки — Config.options.workspaces.
 Rectangle {
     id: root
 
     // Имя выхода (monitor) для фильтрации; пусто — выход с фокусом
     property string output: ""
 
+    // Настройки: Config.options.workspaces
+    readonly property var cfg: Config.options.workspaces
+
     // Высота бара; модуль вписывается в неё с отступом vMargin
     property real barHeight: 40
     property real vMargin: 6
     readonly property int dotSize: Math.round(height * 0.43)
-    readonly property int activeWidth: Math.round(dotSize * 8 / 3)
+    // Стиль ячеек: "circles" — круги, активный пилюля | "squares" — квадраты с закруглением
+    readonly property bool squareStyle: cfg.style === "squares"
+    // В стиле квадратов активная ячейка не шире остальных
+    readonly property int activeWidth: squareStyle ? dotSize : Math.round(dotSize * 8 / 3)
+    readonly property int cellRadius: Math.round(dotSize * 0.3)
     readonly property int padding: Math.round((height - dotSize) / 2)
     property int gap: 8
     property int animFast: 180
     property int animSlow: 360
+
+    // Номер рабочего стола в каждой ячейке
+    readonly property bool showNumbers: cfg.showNumbers
+    // Скрывать рабочие столы без окон
+    readonly property bool hideEmpty: cfg.hideEmpty
+    // Лимит видимых столов; активный остаётся видимым
+    readonly property int maxVisible: cfg.maxVisible
+    onHideEmptyChanged: rebuild()
+    onMaxVisibleChanged: rebuild()
+    onSquareStyleChanged: rebuild()
 
     property var workspaces: []
     property var windows: ({})
@@ -46,13 +65,29 @@ Rectangle {
     function rebuild() {
         const busy = {};
         for (const k in windows) busy[windows[k]] = true;
-        const list = workspaces
-            .filter(w => w.output === targetOutput && (busy[w.id] || w.is_active))
+        let list = workspaces
+            .filter(w => w.output === targetOutput
+                && (hideEmpty ? (busy[w.id] || w.is_active) : true))
             .sort((a, b) => a.idx - b.idx)
             .map(w => ({ id: w.id, idx: w.idx, output: w.output }));
+        const act = workspaces.find(w => w.output === targetOutput && w.is_active);
+        // Лимит видимых: обрезаем по наименьшим idx, активный остаётся видимым
+        if (list.length > maxVisible) {
+            list = list.slice(0, maxVisible);
+            if (act && !list.some(w => w.id === act.id))
+                list[maxVisible - 1] = { id: act.id, idx: act.idx, output: act.output };
+        }
+        // При показе пустых добираем ячейки до maxVisible даже без реальных столов.
+        // id отрицательный — реальных id Niri не существует; клик по такой ячейке
+        // фокусит стол по номеру (Niri сам ограничит индекс последним существующим)
+        if (!hideEmpty && targetOutput !== "" && list.length < maxVisible) {
+            for (let idx = 1; list.length < maxVisible; idx++)
+                if (!list.some(w => w.idx === idx))
+                    list.push({ id: -idx, idx: idx, output: targetOutput });
+            list.sort((a, b) => a.idx - b.idx);
+        }
         if (JSON.stringify(list) !== JSON.stringify(shown)) shown = list;
-        const a = workspaces.find(w => w.output === targetOutput && w.is_active);
-        activeIndex = a ? shown.findIndex(w => w.id === a.id) : -1;
+        activeIndex = act ? shown.findIndex(w => w.id === act.id) : -1;
         syncIndicator();
     }
 
@@ -137,7 +172,7 @@ Rectangle {
             y: root.padding
             width: active ? root.activeWidth : root.dotSize
             height: root.dotSize
-            radius: height / 2
+            radius: root.squareStyle ? root.cellRadius : height / 2
             color: area.containsMouse && !active ? Theme.Palette.on_secondary_container : Theme.Palette.secondary
             scale: area.pressed ? 0.85 : 1
 
@@ -153,17 +188,36 @@ Rectangle {
                 cursorShape: Qt.PointingHandCursor
                 onClicked: if (!dot.active) root.activate(dot.modelData)
             }
+
+            // Номер стола; на активном рисуется поверх индикатора отдельным текстом
+            Text {
+                anchors.centerIn: parent
+                visible: root.showNumbers && !dot.active
+                text: dot.modelData.idx
+                color: area.containsMouse ? Theme.Palette.secondary : Theme.Palette.on_secondary_container
+                font: Tokens.fontSmall
+            }
         }
     }
 
     Rectangle {
+        id: indicator
         visible: root.activeIndex >= 0
         x: root.indL
         y: root.padding
         width: root.indR - root.indL
         height: root.dotSize
-        radius: height / 2
+        radius: root.squareStyle ? root.cellRadius : height / 2
         color: Theme.Palette.primary
+
+        // Номер активного стола поверх пилюли/квадрата
+        Text {
+            anchors.centerIn: parent
+            visible: root.showNumbers && root.activeIndex >= 0
+            text: root.activeIndex >= 0 && root.shown[root.activeIndex] ? root.shown[root.activeIndex].idx : ""
+            color: Theme.Palette.on_primary
+            font: Tokens.fontSmall
+        }
     }
 
     Behavior on indL {
