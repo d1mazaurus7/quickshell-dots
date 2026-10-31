@@ -6,6 +6,7 @@ import Quickshell
 import Quickshell.Wayland
 import "../shell/theme"
 import "pages" as Pages
+import "../services/updater"
 
 // Окно настроек: оверлей поверх всех окон, панель по центру экрана
 PanelWindow {
@@ -27,6 +28,7 @@ PanelWindow {
         { title: "Центр уведомлений", page: notiCenterPage },
         { title: "Скриншоты", page: screenshotPage },
         { title: "Ассистент", page: assistantPage },
+        { title: "Оболочка", page: shellPage },
         { title: "О системе", page: aboutPage }
     ]
     readonly property var filteredSections: sections.filter(s =>
@@ -73,6 +75,21 @@ PanelWindow {
     Component { id: screenshotPage; Pages.ScreenshotPage {} }
     Component { id: assistantPage; Pages.AssistantPage {} }
     Component { id: aboutPage; Pages.AboutPage {} }
+    Component { id: shellPage; Pages.ShellPage { updater: shellUpdater } }
+
+    // Обновление оболочки; после установки окно открывается на разделе «Оболочка»
+    Updater {
+        id: shellUpdater
+        onInstalledOnStart: {
+            root.currentTitle = "Оболочка";
+            root.open = true;
+        }
+    }
+
+    onOpenChanged: {
+        if (!open && shellUpdater.status === "installed")
+            shellUpdater.status = "idle";
+    }
 
     Shortcut {
         sequence: "Escape"

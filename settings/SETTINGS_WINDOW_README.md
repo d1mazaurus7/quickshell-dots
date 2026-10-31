@@ -18,6 +18,7 @@ settings/
   pages/
     FontPage.qml          # раздел «Шрифт» — образец страницы
     InterfacePage.qml     # раздел «Интерфейс»: масштаб, отступы, скругление, обводка
+    ShellPage.qml         # раздел «Оболочка»: обновление из GitHub (services/updater/Updater.qml)
 ```
 
 - Экземпляр окна и IPC создаются один раз в `shell/Shell.qml`.
