@@ -1,6 +1,8 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
+import Quickshell
+import Quickshell.Io
 import "../../shell/theme"
 
 // Раздел «Оболочка»: обновление из репозитория удержанием кнопки
@@ -66,6 +68,13 @@ ColumnLayout {
             visible: opacity > 0
             Behavior on opacity { NumberAnimation { duration: Tokens.animationSlow; easing.type: Easing.OutCubic } }
             Behavior on scale { NumberAnimation { duration: Tokens.animationSlow; easing.type: Easing.OutCubic } }
+            // Набухает по мере заполнения
+            transform: Scale {
+                origin.x: button.width / 2
+                origin.y: button.height / 2
+                xScale: 1 + 0.04 * button.progress
+                yScale: xScale
+            }
 
             onProgressChanged: wave.requestPaint()
             onPhaseChanged: wave.requestPaint()
@@ -111,17 +120,19 @@ ColumnLayout {
                     bubbles(ctx, edge);
                 }
 
-                // Пузырьки поднимаются у края заливки; скорости кратны фазе — цикл без скачков
+                // Пузырьки по всей заливке, гуще у края. Скорости кратны фазе — цикл без скачков
                 function bubbles(ctx, edge) {
-                    const seeds = [0.05, 0.42, 0.77, 0.21, 0.63, 0.9, 0.34, 0.55];
                     const t = button.phase / (2 * Math.PI);
                     ctx.fillStyle = Qt.alpha(page.colors.primary, 0.35);
-                    for (let i = 0; i < seeds.length; i++) {
-                        const seed = seeds[i];
-                        const r = Tokens.scaled(2 + seed * 3);
-                        const y = height + r - ((t * (1 + i % 3) + seed) % 1) * (height + r * 2);
-                        const x = edge - Tokens.scaled(6 + seed * 38) + Tokens.scaled(3) * Math.sin(button.phase * 2 + i);
-                        if (x - r <= 0)
+                    for (let i = 0; i < 28; i++) {
+                        const seed = (Math.sin(i * 12.9898) * 43758.5453) % 1;
+                        const rnd = Math.abs(seed);
+                        const r = Tokens.scaled(1.5 + rnd * 3);
+                        const y = height + r - ((t * (1 + i % 3) + rnd) % 1) * (height + r * 2);
+                        // Первые 8 — у края, остальные — по всей ширине заливки
+                        const base = i < 8 ? edge - Tokens.scaled(6 + rnd * 38) : edge * ((i * 0.618034) % 1);
+                        const x = base + Tokens.scaled(3) * Math.sin(button.phase * 2 + i);
+                        if (x - r <= 0 || x + r >= edge)
                             continue;
                         ctx.beginPath();
                         ctx.arc(x, y, r, 0, 2 * Math.PI);
@@ -155,7 +166,11 @@ ColumnLayout {
                 to: 1
                 duration: (1 - button.progress) * page.holdDuration
                 easing.type: Easing.InOutSine
-                onFinished: if (button.progress >= 1) page.updater.start()
+                onFinished: {
+                    chargeSound.running = false;
+                    if (button.progress >= 1)
+                        page.updater.start();
+                }
             }
 
             NumberAnimation {
@@ -176,17 +191,27 @@ ColumnLayout {
                 onPressed: {
                     drainAnim.stop();
                     holdAnim.restart();
+                    chargeSound.running = true;
                 }
                 onReleased: {
                     if (button.progress >= 1)
                         return;
                     holdAnim.stop();
+                    chargeSound.running = false;
                     drainAnim.restart();
                 }
                 onCanceled: {
                     holdAnim.stop();
+                    chargeSound.running = false;
                     drainAnim.restart();
                 }
+            }
+
+            // Звук зарядки по кругу, пока кнопка заполняется
+            Process {
+                id: chargeSound
+                command: ["pw-play", Quickshell.shellPath("assets/sounds/charge_loop.wav")]
+                onExited: if (holdAnim.running) running = true
             }
 
             // Кнопка вернулась (ошибка) — снова пустая
