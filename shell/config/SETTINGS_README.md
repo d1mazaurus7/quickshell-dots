@@ -19,9 +19,10 @@
 | `appearance` | `scale`, `spacingHorizontal`, `spacingVertical`, `radiusScale`, `animationScale` (real), `borders` (bool) |
 | `typography` | `family` (string), `size` (int, базовый px)            |
 | `snow`       | `enabled`, `sweep`, `hideGroundWithTiled`, `windowDrifts` (bool), `intensity`, `speed`, `capRounding`, `shakeOff` (real), `driftHeight`, `windowDriftHeight` (int, лог. px) |
+| `bar`        | `left`, `center`, `right` (list<string>, id модулей из `shell/bar/BarModules.qml` по порядку; модуля нет ни в одном блоке — он скрыт). Менять только присваиванием нового массива |
 | `time`       | `showSeconds`, `showDate`, `showWeekday`, `shortWeekday` (bool) |
 | `stopwatch`  | `side` (string: `right` / `left`), `barWidget`, `blinkIcon` (bool), `icon` (string) |
-| `musicPlayer` | `cava`, `coverBackground`, `backgroundBlur`, `wavyTimeline`, `showArtist`, `equalizer` (bool), `timelineStyle` (string: `wave` / `material`), `danceGif` (string, имя файла из `assets/gifs/dance`, `""` — нет), `danceGifEnabled` (bool) |
+| `musicPlayer` | `cava`, `coverBackground`, `backgroundBlur`, `wavyTimeline`, `showArtist`, `equalizer` (bool), `timelineStyle` (string: `wave` / `material`), `danceGif` (string, имя файла из `assets/gifs/dance`, `""` — нет), `danceGifEnabled`, `lyrics`, `lyricsScroll`, `lyricsSeek` (bool), `lyricsFontSize` (int, px), `lyricsAlign` (string: `left` / `center` / `right`) |
 | `workspaces` | `showNumbers`, `hideEmpty` (bool), `style` (string: `circles` / `squares`) |
 | `notiCenter` | `popupSide` (string: `right` / `left`), `sound` (bool, заглушка), `swipe` (bool), `swipeDirection` (string: `both` / `right` / `left`), `width`, `bodyLines` (int), `heightRatio` (real 0.4..1), `showClock`, `showSeconds`, `showDate`, `showWeekday`, `showWifi`, `showBluetooth`, `showDnd`, `showBrightness`, `showVolume`, `showActions`, `uiSounds` (bool) |
 | `sound`      | `typeSound`, `clickSound`, `notificationSound`, `osdSound` (string, имя файла из `assets/sounds`), `mixer`, `mixerOutputs`, `mixerInputs`, `mixerRestart` (bool) |

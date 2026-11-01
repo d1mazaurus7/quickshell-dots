@@ -3,8 +3,9 @@ import Quickshell.Io
 import Quickshell.Services.Mpris
 
 // Позиция трека с поправкой: при смене трека Quickshell запрашивает Position один раз,
-// и часть плееров в этот момент ещё отдаёт старую позицию. Чуть позже перечитываем
-// Position по DBus и держим разницу, пока позиция не сделает скачок (перемотка, пауза).
+// а mpd-mpris ещё ~1 с отдаёт конец прошлого трека и потом не сообщает об изменении.
+// Перечитываем Position по DBus несколько раз и держим разницу, пока позиция
+// не сделает скачок (перемотка, пауза).
 Item {
     id: root
 
@@ -14,17 +15,30 @@ Item {
     property real correction: 0
     property real anchor: NaN
 
+    // Задержки перечитывания после смены трека, мс (от предыдущего запроса)
+    readonly property var steps: [300, 900, 1500]
+    property int step: 0
+
+    function resync() {
+        step = 0;
+        refetch.interval = steps[0];
+        refetch.restart();
+    }
+
     onPlayerChanged: {
         correction = 0;
         anchor = NaN;
+        resync();
     }
+    // Окно могло открыться посреди трека с уже сбитой позицией
+    Component.onCompleted: resync()
 
     Connections {
         target: root.player
 
         function onPostTrackChanged() {
             root.correction = 0;
-            refetch.restart();
+            root.resync();
         }
 
         // При линейном ходе (raw - now) постоянно, на паузе постоянно raw;
@@ -41,7 +55,14 @@ Item {
     Timer {
         id: refetch
         interval: 300
-        onTriggered: if (root.player && root.player.positionSupported) query.running = true
+        onTriggered: {
+            if (root.player && root.player.positionSupported)
+                query.running = true;
+            if (++root.step < root.steps.length) {
+                interval = root.steps[root.step];
+                restart();
+            }
+        }
     }
 
     Process {

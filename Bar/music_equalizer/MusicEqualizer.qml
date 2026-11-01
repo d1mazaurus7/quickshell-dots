@@ -21,6 +21,15 @@ Anim.BarDropdown {
     readonly property int ringRoom: Tokens.scaled(22)
     readonly property int coverSize: Tokens.scaled(132)
     readonly property var cfg: Config.options.musicPlayer
+    // 0 — плеер, 1 — текст песни
+    property int page: 0
+    // Плавно идёт от 0 к 1 при смене страницы
+    property real pageShift: page
+    readonly property bool lyricsOn: cfg.lyrics
+    onLyricsOnChanged: if (!lyricsOn) page = 0
+    // Повтор после сетевой ошибки — при открытии окна
+    onVisibleChanged: if (visible) lyricsState.refresh()
+    Behavior on pageShift { NumberAnimation { duration: Tokens.animationMedium; easing.type: Easing.OutCubic } }
 
     function formatTime(sec) {
         const t = Math.max(0, Math.floor(sec));
@@ -36,7 +45,8 @@ Anim.BarDropdown {
 
     // position в MPRIS не обновляется сам — перечитываем, пока окно открыто и трек играет
     Timer {
-        interval: 500
+        // На странице текста чаще — чтобы строки переключались вовремя
+        interval: root.page === 1 ? 150 : 500
         repeat: true
         running: root.visible && root.player !== null && root.player.isPlaying && root.player.positionSupported
         onTriggered: root.player.positionChanged()
@@ -47,10 +57,17 @@ Anim.BarDropdown {
         player: root.player
     }
 
+    LyricsState {
+        id: lyricsState
+        player: root.player
+        active: root.lyricsOn
+        position: trackPos.position
+    }
+
     ClippingRectangle {
         id: card
         width: parent.width
-        height: layout.implicitHeight + root.inner * 2
+        height: pages.y + pages.height + root.inner
         radius: Tokens.radius(18)
         color: Theme.Palette.surface_container
 
@@ -85,12 +102,13 @@ Anim.BarDropdown {
         // Спектр вокруг обложки — под обложкой и текстом
         CavaSource {
             id: cava
-            active: root.cfg.cava && root.visible && (root.player?.isPlaying ?? false)
+            active: root.cfg.cava && root.visible && root.page === 0 && (root.player?.isPlaying ?? false)
         }
         CavaRing {
-            visible: root.cfg.cava
-            x: root.inner + root.ringRoom + root.coverSize / 2 - width / 2
-            y: root.inner + root.ringRoom + root.coverSize / 2 - height / 2
+            visible: root.cfg.cava && opacity > 0
+            opacity: layout.opacity
+            x: pages.x + layout.x + root.ringRoom + root.coverSize / 2 - width / 2
+            y: pages.y + root.ringRoom + root.coverSize / 2 - height / 2
             values: cava.values
             active: cava.active
             coverSize: root.coverSize
@@ -98,204 +116,312 @@ Anim.BarDropdown {
             amplitude: root.coverSize * 0.2
         }
 
-        Column {
-            id: layout
-            x: root.inner
+        // Вкладки «Плеер / Текст»
+        Rectangle {
+            id: tabs
+            readonly property int pad: Tokens.scaled(3)
+
+            visible: root.lyricsOn
+
+            x: (parent.width - width) / 2
             y: root.inner
-            width: parent.width - root.inner * 2
-            spacing: Tokens.scaled(18)
+            width: Tokens.scaled(280)
+            height: Tokens.scaled(36)
+            radius: height / 2
+            color: Theme.Palette.surface_container_high
 
-            // Обложка, трек, кнопки, таймлайн
-            Row {
-                width: parent.width
-                topPadding: root.ringRoom
-                leftPadding: root.ringRoom
-                spacing: Tokens.scaled(20) + root.ringRoom
-
-                ClippingRectangle {
-                    width: root.coverSize
-                    height: root.coverSize
-                    radius: Tokens.radius(20)
-                    color: Theme.Palette.surface_variant
-
-                    Image {
-                        anchors.fill: parent
-                        source: root.player?.trackArtUrl ?? ""
-                        fillMode: Image.PreserveAspectCrop
-                        asynchronous: true
-                        sourceSize.width: root.coverSize * 2
-                        sourceSize.height: root.coverSize * 2
-                        visible: status === Image.Ready
-                    }
-                    Text {
-                        anchors.centerIn: parent
-                        visible: !root.player?.trackArtUrl
-                        text: "music_note"
-                        color: Theme.Palette.on_surface_variant
-                        font.family: "Material Symbols Rounded"
-                        font.pixelSize: Math.round(root.coverSize * 0.4)
-                    }
-                }
-
-                Column {
-                    width: parent.width - parent.leftPadding - root.coverSize - parent.spacing
-                    height: root.coverSize
-
-                    Item {
-                        width: parent.width
-                        height: titles.height
-
-                        Column {
-                            id: titles
-                            width: parent.width - controls.width - Tokens.scaled(12)
-
-                            MarqueeText {
-                                width: parent.width
-                                text: root.player?.trackTitle || "Без названия"
-                                color: Theme.Palette.on_surface
-                                font.family: Tokens.typography.family
-                                font.pixelSize: Tokens.scaled(26)
-                                font.weight: Font.Medium
-                            }
-                            MarqueeText {
-                                width: parent.width
-                                visible: root.cfg.showArtist
-                                text: root.player?.trackArtist || "Неизвестный исполнитель"
-                                color: Theme.Palette.on_surface_variant
-                                font.family: Tokens.typography.family
-                                font.pixelSize: Tokens.scaled(16)
-                            }
-                        }
-
-                        ControlButtons {
-                            id: controls
-                            anchors.right: parent.right
-                            anchors.top: parent.top
-                            player: root.player
-                        }
-                    }
-
-                    Item {
-                        width: 1
-                        height: parent.height - titles.height - time.height - wave.height
-                    }
-
-                    Text {
-                        id: time
-                        anchors.right: parent.right
-                        visible: root.player !== null && root.player.lengthSupported && root.player.length > 0
-                        text: root.player ? root.formatTime(trackPos.position) + " / " + root.formatTime(root.player.length) : ""
-                        color: Theme.Palette.on_surface_variant
-                        font.family: Tokens.typography.family
-                        font.pixelSize: Tokens.scaled(13)
-                        font.features: { "tnum": 1 }
-                    }
-
-                    WaveSlider {
-                        id: wave
-                        width: parent.width
-                        playing: root.player?.isPlaying ?? false
-                        wavy: root.cfg.wavyTimeline
-                        style: root.cfg.timelineStyle
-                        seekable: root.player !== null && root.player.canSeek && root.player.length > 0
-                        value: root.player && root.player.length > 0 ? trackPos.position / root.player.length : 0
-                        onSeekRequested: v => root.player.position = v * root.player.length
-                    }
-                }
+            Rectangle {
+                x: tabs.pad + root.pageShift * tabs.width / 2
+                y: tabs.pad
+                width: tabs.width / 2 - tabs.pad * 2
+                height: tabs.height - tabs.pad * 2
+                radius: height / 2
+                color: Theme.Palette.primary
             }
 
-            // Полосы эквалайзера и gif справа (gif — и без эквалайзера)
             Row {
-                anchors.horizontalCenter: parent.horizontalCenter
-                visible: root.cfg.equalizer || root.showGif
-                spacing: Tokens.scaled(14)
+                anchors.fill: parent
 
-                Row {
-                    id: eqBands
-                    visible: root.cfg.equalizer
-                    spacing: Tokens.scaled(14)
+                Repeater {
+                    model: [
+                        { icon: "music_note", label: "Плеер" },
+                        { icon: "lyrics", label: "Текст" }
+                    ]
 
-                    Repeater {
-                        model: root.equalizer.frequencies
+                    Item {
+                        id: tab
+                        required property var modelData
+                        required property int index
+                        readonly property bool active: root.page === index
 
-                        EqSlider {
-                            required property int modelData
-                            required property int index
-                            value: root.equalizer.gains[index]
-                            from: root.equalizer.minGain
-                            to: root.equalizer.maxGain
-                            label: modelData >= 1000 ? (modelData / 1000) + "k" : String(modelData)
-                            onMoved: v => root.equalizer.setGain(index, v)
-                        }
-                    }
-                }
+                        width: tabs.width / 2
+                        height: tabs.height
 
-                AnimatedImage {
-                    visible: root.showGif
-                    width: root.gifWidth
-                    height: eqBands.height
-                    source: root.showGif ? Qt.resolvedUrl("../../assets/gifs/dance/" + root.cfg.danceGif) : ""
-                    fillMode: Image.PreserveAspectFit
-                    asynchronous: true
-                    playing: root.visible
-                }
-            }
-
-            // Пресеты
-            Column {
-                width: parent.width
-                visible: root.cfg.equalizer
-                spacing: Tokens.scaled(10)
-
-                Text {
-                    text: "Предустановки"
-                    color: Theme.Palette.on_surface_variant
-                    font.family: Tokens.typography.family
-                    font.pixelSize: Tokens.scaled(14)
-                }
-
-                Grid {
-                    id: presetGrid
-                    width: parent.width
-                    columns: 4
-                    spacing: Tokens.scaled(10)
-
-                    Repeater {
-                        model: root.equalizer.presets
-
+                        // Слой состояния hover/pressed
                         Rectangle {
-                            id: chip
-                            required property var modelData
-                            readonly property bool active: root.equalizer.activePreset === modelData.name
+                            anchors.fill: parent
+                            anchors.margins: tabs.pad
+                            radius: height / 2
+                            color: Theme.Palette.on_surface
+                            opacity: tab.active ? 0 : tabArea.pressed ? 0.12 : tabArea.containsMouse ? 0.08 : 0
+                            Behavior on opacity { NumberAnimation { duration: Tokens.animationFast } }
+                        }
 
-                            width: (presetGrid.width - presetGrid.spacing * (presetGrid.columns - 1)) / presetGrid.columns
-                            height: Tokens.scaled(40)
-                            radius: Tokens.radius(active ? 20 : 12)
-                            color: active ? Theme.Palette.primary
-                                : chipArea.pressed ? Theme.Palette.surface_bright
-                                : chipArea.containsMouse ? Theme.Palette.surface_container_highest
-                                : Theme.Palette.surface_container_high
-                            scale: chipArea.pressed ? 0.96 : 1
-
-                            Behavior on color { ColorAnimation { duration: Tokens.animationFast } }
-                            Behavior on radius { NumberAnimation { duration: Tokens.animationMedium; easing.type: Easing.OutCubic } }
+                        Row {
+                            anchors.centerIn: parent
+                            spacing: Tokens.scaled(6)
+                            scale: tabArea.pressed ? 0.96 : 1
                             Behavior on scale { NumberAnimation { duration: Tokens.animationFast; easing.type: Easing.OutCubic } }
 
                             Text {
-                                anchors.centerIn: parent
-                                text: chip.modelData.name
-                                color: chip.active ? Theme.Palette.on_primary : Theme.Palette.on_surface
-                                font.family: Tokens.typography.family
-                                font.pixelSize: Tokens.scaled(15)
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: tab.modelData.icon
+                                color: tab.active ? Theme.Palette.on_primary : Theme.Palette.on_surface_variant
+                                font.family: "Material Symbols Rounded"
+                                font.pixelSize: Tokens.scaled(18)
                                 Behavior on color { ColorAnimation { duration: Tokens.animationFast } }
                             }
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: tab.modelData.label
+                                color: tab.active ? Theme.Palette.on_primary : Theme.Palette.on_surface_variant
+                                font.family: Tokens.typography.family
+                                font.pixelSize: Tokens.scaled(14)
+                                font.weight: Font.Medium
+                                Behavior on color { ColorAnimation { duration: Tokens.animationFast } }
+                            }
+                        }
 
-                            MouseArea {
-                                id: chipArea
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: root.equalizer.loadPreset(chip.modelData)
+                        MouseArea {
+                            id: tabArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.page = tab.index
+                        }
+                    }
+                }
+            }
+        }
+
+        // Страницы: высота всегда по странице плеера, чтобы окно не меняло размер
+        Item {
+            id: pages
+            x: root.inner
+            y: root.lyricsOn ? tabs.y + tabs.height + Tokens.scaled(14) : root.inner
+            width: parent.width - root.inner * 2
+            height: layout.implicitHeight
+
+            LyricsPage {
+                width: parent.width
+                height: parent.height
+                x: (1 - root.pageShift) * Tokens.scaled(40)
+                opacity: root.pageShift
+                visible: opacity > 0
+                lyrics: lyricsState
+                player: root.player
+            }
+
+            Column {
+                id: layout
+                x: -root.pageShift * Tokens.scaled(40)
+                width: parent.width
+                opacity: 1 - root.pageShift
+                visible: opacity > 0
+                spacing: Tokens.scaled(18)
+
+                // Обложка, трек, кнопки, таймлайн
+                Row {
+                    width: parent.width
+                    topPadding: root.ringRoom
+                    leftPadding: root.ringRoom
+                    spacing: Tokens.scaled(20) + root.ringRoom
+
+                    ClippingRectangle {
+                        width: root.coverSize
+                        height: root.coverSize
+                        radius: Tokens.radius(20)
+                        color: Theme.Palette.surface_variant
+
+                        Image {
+                            anchors.fill: parent
+                            source: root.player?.trackArtUrl ?? ""
+                            fillMode: Image.PreserveAspectCrop
+                            asynchronous: true
+                            sourceSize.width: root.coverSize * 2
+                            sourceSize.height: root.coverSize * 2
+                            visible: status === Image.Ready
+                        }
+                        Text {
+                            anchors.centerIn: parent
+                            visible: !root.player?.trackArtUrl
+                            text: "music_note"
+                            color: Theme.Palette.on_surface_variant
+                            font.family: "Material Symbols Rounded"
+                            font.pixelSize: Math.round(root.coverSize * 0.4)
+                        }
+                    }
+
+                    Column {
+                        width: parent.width - parent.leftPadding - root.coverSize - parent.spacing
+                        height: root.coverSize
+
+                        Item {
+                            width: parent.width
+                            height: titles.height
+
+                            Column {
+                                id: titles
+                                width: parent.width - controls.width - Tokens.scaled(12)
+
+                                MarqueeText {
+                                    width: parent.width
+                                    text: root.player?.trackTitle || "Без названия"
+                                    color: Theme.Palette.on_surface
+                                    font.family: Tokens.typography.family
+                                    font.pixelSize: Tokens.scaled(26)
+                                    font.weight: Font.Medium
+                                }
+                                MarqueeText {
+                                    width: parent.width
+                                    visible: root.cfg.showArtist
+                                    text: root.player?.trackArtist || "Неизвестный исполнитель"
+                                    color: Theme.Palette.on_surface_variant
+                                    font.family: Tokens.typography.family
+                                    font.pixelSize: Tokens.scaled(16)
+                                }
+                            }
+
+                            ControlButtons {
+                                id: controls
+                                anchors.right: parent.right
+                                anchors.top: parent.top
+                                player: root.player
+                            }
+                        }
+
+                        Item {
+                            width: 1
+                            height: parent.height - titles.height - time.height - wave.height
+                        }
+
+                        Text {
+                            id: time
+                            anchors.right: parent.right
+                            visible: root.player !== null && root.player.lengthSupported && root.player.length > 0
+                            text: root.player ? root.formatTime(trackPos.position) + " / " + root.formatTime(root.player.length) : ""
+                            color: Theme.Palette.on_surface_variant
+                            font.family: Tokens.typography.family
+                            font.pixelSize: Tokens.scaled(13)
+                            font.features: { "tnum": 1 }
+                        }
+
+                        WaveSlider {
+                            id: wave
+                            width: parent.width
+                            playing: root.player?.isPlaying ?? false
+                            wavy: root.cfg.wavyTimeline
+                            style: root.cfg.timelineStyle
+                            seekable: root.player !== null && root.player.canSeek && root.player.length > 0
+                            value: root.player && root.player.length > 0 ? trackPos.position / root.player.length : 0
+                            onSeekRequested: v => root.player.position = v * root.player.length
+                        }
+                    }
+                }
+
+                // Полосы эквалайзера и gif справа (gif — и без эквалайзера)
+                Row {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    visible: root.cfg.equalizer || root.showGif
+                    spacing: Tokens.scaled(14)
+
+                    Row {
+                        id: eqBands
+                        visible: root.cfg.equalizer
+                        spacing: Tokens.scaled(14)
+
+                        Repeater {
+                            model: root.equalizer.frequencies
+
+                            EqSlider {
+                                required property int modelData
+                                required property int index
+                                value: root.equalizer.gains[index]
+                                from: root.equalizer.minGain
+                                to: root.equalizer.maxGain
+                                label: modelData >= 1000 ? (modelData / 1000) + "k" : String(modelData)
+                                onMoved: v => root.equalizer.setGain(index, v)
+                            }
+                        }
+                    }
+
+                    AnimatedImage {
+                        visible: root.showGif
+                        width: root.gifWidth
+                        height: eqBands.height
+                        source: root.showGif ? Qt.resolvedUrl("../../assets/gifs/dance/" + root.cfg.danceGif) : ""
+                        fillMode: Image.PreserveAspectFit
+                        asynchronous: true
+                        playing: root.visible
+                    }
+                }
+
+                // Пресеты
+                Column {
+                    width: parent.width
+                    visible: root.cfg.equalizer
+                    spacing: Tokens.scaled(10)
+
+                    Text {
+                        text: "Предустановки"
+                        color: Theme.Palette.on_surface_variant
+                        font.family: Tokens.typography.family
+                        font.pixelSize: Tokens.scaled(14)
+                    }
+
+                    Grid {
+                        id: presetGrid
+                        width: parent.width
+                        columns: 4
+                        spacing: Tokens.scaled(10)
+
+                        Repeater {
+                            model: root.equalizer.presets
+
+                            Rectangle {
+                                id: chip
+                                required property var modelData
+                                readonly property bool active: root.equalizer.activePreset === modelData.name
+
+                                width: (presetGrid.width - presetGrid.spacing * (presetGrid.columns - 1)) / presetGrid.columns
+                                height: Tokens.scaled(40)
+                                radius: Tokens.radius(active ? 20 : 12)
+                                color: active ? Theme.Palette.primary
+                                    : chipArea.pressed ? Theme.Palette.surface_bright
+                                    : chipArea.containsMouse ? Theme.Palette.surface_container_highest
+                                    : Theme.Palette.surface_container_high
+                                scale: chipArea.pressed ? 0.96 : 1
+
+                                Behavior on color { ColorAnimation { duration: Tokens.animationFast } }
+                                Behavior on radius { NumberAnimation { duration: Tokens.animationMedium; easing.type: Easing.OutCubic } }
+                                Behavior on scale { NumberAnimation { duration: Tokens.animationFast; easing.type: Easing.OutCubic } }
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: chip.modelData.name
+                                    color: chip.active ? Theme.Palette.on_primary : Theme.Palette.on_surface
+                                    font.family: Tokens.typography.family
+                                    font.pixelSize: Tokens.scaled(15)
+                                    Behavior on color { ColorAnimation { duration: Tokens.animationFast } }
+                                }
+
+                                MouseArea {
+                                    id: chipArea
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: root.equalizer.loadPreset(chip.modelData)
+                                }
                             }
                         }
                     }

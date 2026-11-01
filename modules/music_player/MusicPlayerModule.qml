@@ -5,6 +5,7 @@ import Quickshell.Services.Mpris
 import Quickshell.Widgets
 import "../../theme" as Theme
 import "../../shell/theme"
+import "../../Bar/music_equalizer"
 
 // Музыкальный плеер для бара: обложка, трек/исполнитель, время, кнопки управления
 Rectangle {
@@ -61,6 +62,11 @@ Rectangle {
         repeat: true
         running: root.player !== null && root.player.isPlaying && root.player.positionSupported
         onTriggered: root.player.positionChanged()
+    }
+
+    TrackPosition {
+        id: trackPos
+        player: root.player
     }
 
     // Клик по модулю (вне кнопок) — открыть окно плеера
@@ -130,7 +136,7 @@ Rectangle {
         Text {
             anchors.verticalCenter: parent.verticalCenter
             visible: root.player !== null && root.player.lengthSupported && root.player.length > 0
-            text: root.player ? root.formatTime(root.player.position) + " / " + root.formatTime(root.player.length) : ""
+            text: root.player ? root.formatTime(trackPos.position) + " / " + root.formatTime(root.player.length) : ""
             color: Theme.Palette.on_surface_variant
             font.family: root.fontFamily
             font.pixelSize: Math.round(root.size * 0.25)

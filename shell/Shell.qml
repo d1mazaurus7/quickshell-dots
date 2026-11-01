@@ -4,19 +4,15 @@ import Quickshell
 import Quickshell.Wayland
 import "../theme" as Theme
 import "theme"
+import "config"
+import "bar"
 import "../Bar" as Bar
-import "../modules/tray" as Tray
-import "../modules/bluetooth" as Bluetooth
-import "../modules/workspaces"
-import "../modules/music_player" as MusicPlayer
 import "../modules/noti-center" as NotiCenter
 import "../Bar/music_equalizer" as MusicEqualizer
 import "../settings" as Settings
 import "../modules/snow" as Snow
-import "../modules/time" as Time
 import "../Bar/stopwatch" as Stopwatch
 import "../services/screenshot" as Screenshot
-import "../modules/volume" as Volume
 import "../Bar/assistant" as Assistant
 import "../Bar/osd" as Osd
 
@@ -78,14 +74,25 @@ Item {
             // Привязка к экрану
             screen: modelData
 
+            // Контекст для модулей бара (shell/bar/BarModules.qml)
+            readonly property var stopwatch: stopwatchWindow
+            // Модуль музыки, если он размещён в баре; под ним открывается окно плеера
+            property Item musicModule: null
+            readonly property var musicEqualizer: musicEqualizerLoader.item
+
+            function toggleMusicPlayer() {
+                if (musicEqualizer && !musicEqualizer.recentlyDismissed())
+                    musicEqualizer.open = !musicEqualizer.open;
+            }
+
             // Пока плеер виден (включая анимацию закрытия), бар держит клавиатуру — иначе Esc
             // не доходит до плеера, а ранний сброс фокуса снимает захват и окно пропадает рывком
-            WlrLayershell.keyboardFocus: musicEqualizer.visible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+            WlrLayershell.keyboardFocus: musicEqualizer?.visible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
             Shortcut {
                 sequence: "Escape"
-                enabled: musicEqualizer.open
-                onActivated: musicEqualizer.open = false
+                enabled: barWindow.musicEqualizer?.open ?? false
+                onActivated: barWindow.musicEqualizer.open = false
             }
             
             anchors {
@@ -112,9 +119,6 @@ Item {
                 color: Theme.Palette.background
             }
 
-            // Время: центр бара, не зависит от ширины боковых блоков
-            Time.Time { anchors.centerIn: barBackground }
-
             // Окно для выбора обоев: только на первом экране, чтобы IPC "wallpaper" был один
             Loader {
                 active: barWindow.modelData === Quickshell.screens[0]
@@ -138,19 +142,25 @@ Item {
                 onOpenOutputRequested: name => shellRoot.notiCenterOutput = name
             }
 
-            // Окно плеера с эквалайзером под модулем музыки
-            MusicEqualizer.MusicEqualizer {
-                id: musicEqualizer
-                anchorItem: musicModule
-                player: musicModule.player
-                equalizer: equalizerState
-                onDismissed: open = false
+            // Окно плеера с эквалайзером под модулем музыки (только пока модуль в баре)
+            Loader {
+                id: musicEqualizerLoader
+                active: barWindow.musicModule !== null
+                sourceComponent: MusicEqualizer.MusicEqualizer {
+                    anchorItem: barWindow.musicModule
+                    player: barWindow.musicModule?.player ?? null
+                    equalizer: equalizerState
+                    onDismissed: open = false
+                }
             }
 
             // IPC: открыть/закрыть плеер на мониторе в фокусе, на остальных — закрыть
             Connections {
                 target: playerIpc
                 function onRequested(action: string, output: string): void {
+                    const musicEqualizer = barWindow.musicEqualizer;
+                    if (!musicEqualizer)
+                        return;
                     if (output !== barWindow.modelData.name)
                         musicEqualizer.open = false;
                     else
@@ -158,57 +168,29 @@ Item {
                 }
             }
 
-            // Содержимое панели (блоки слева, посередине и справа)
-            RowLayout {
-                anchors.fill: parent
+            // Содержимое панели: блоки слева, посередине и справа (Config.options.bar)
+            BarSection {
+                anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
                 anchors.leftMargin: Math.round(10 * Tokens.spacingScaleH)
+                bar: barWindow
+                ids: Config.options.bar.left
+            }
+
+            // Центр бара, не зависит от ширины боковых блоков
+            BarSection {
+                anchors.centerIn: barBackground
+                bar: barWindow
+                ids: Config.options.bar.center
+            }
+
+            BarSection {
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
                 // Модули расталкиваются влево, освобождая место под центр уведомлений
                 anchors.rightMargin: Math.round(10 * Tokens.spacingScaleH) + notiCenter.reserve
-                
-                // Блок слева
-                RowLayout {
-                    Layout.alignment: Qt.AlignLeft
-                    Workspaces {
-                        output: barWindow.modelData.name
-                        barHeight: barWindow.implicitHeight
-                    }
-                    // Раскладка клавиатуры
-                    // Интернет
-                    MusicPlayer.MusicPlayerModule {
-                        id: musicModule
-                        size: barWindow.implicitHeight - Tokens.scaled(8)
-                        onOpenRequested: {
-                            if (!musicEqualizer.recentlyDismissed())
-                                musicEqualizer.open = !musicEqualizer.open;
-                        }
-                    }
-                    // Секундомер: виден, пока запущен или на паузе
-                    Stopwatch.StopwatchWidget {
-                        stopwatch: stopwatchWindow
-                        barHeight: barWindow.implicitHeight
-                    }
-
-                    // Звук
-                    Volume.Volume { barHeight: barWindow.implicitHeight }
-                    // Мониторинг системы (CPU, RAM)
-                    // Уведомления
-                }
-                
-                // Блок посередине
-                Item {
-                    Layout.fillWidth: true
-                    Layout.alignment: Qt.AlignCenter
-                    // Активное окно
-                    // Время, дата — по центру бара (ниже, вне RowLayout)
-                    // Погода
-                }
-                
-                // Блок справа
-                RowLayout {
-                    Layout.alignment: Qt.AlignRight
-                    Tray.Tray { barHeight: barWindow.implicitHeight }
-                    Bluetooth.Bluetooth { barHeight: barWindow.implicitHeight }
-                }
+                bar: barWindow
+                ids: Config.options.bar.right
             }
         }
     }

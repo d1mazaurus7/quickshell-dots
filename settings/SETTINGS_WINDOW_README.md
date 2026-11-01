@@ -15,9 +15,14 @@ settings/
     SettingDropdown.qml   # выпадающий список строк (поиск, превью шрифтов)
     SettingSlider.qml     # слайдер: value, from/to/stepSize, formatValue, moved(value) по отпусканию
     SettingSwitch.qml     # переключатель: checked, toggled(checked)
+    SettingButton.qml     # кнопка действия: text, icon, clicked()
+    ModuleChip.qml        # перетаскиваемый блок модуля: moduleId, title, dragLayer
+    ModuleDropZone.qml    # ячейка для блоков: title, modules [{id,title}], dropped(moduleId, index)
   pages/
     FontPage.qml          # раздел «Шрифт» — образец страницы
     InterfacePage.qml     # раздел «Интерфейс»: масштаб, отступы, скругление, обводка
+    BarPage.qml           # раздел «Бар»: модули по блокам бара перетаскиванием (Config.options.bar)
+                          # список модулей — из shell/bar/BarModules.qml, см. modules/README.md
     ShellPage.qml         # раздел «Оболочка»: обновление из GitHub (services/updater/Updater.qml)
 ```
 

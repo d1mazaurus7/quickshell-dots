@@ -19,6 +19,7 @@ PanelWindow {
     readonly property var sections: [
         { title: "Шрифт", page: fontPage },
         { title: "Интерфейс", page: interfacePage },
+        { title: "Бар", page: barPage },
         { title: "Время", page: timePage },
         { title: "Секундомер", page: stopwatchPage },
         { title: "Музыкальный плеер", page: musicPlayerPage },
@@ -65,6 +66,7 @@ PanelWindow {
 
     Component { id: fontPage; Pages.FontPage {} }
     Component { id: interfacePage; Pages.InterfacePage {} }
+    Component { id: barPage; Pages.BarPage {} }
     Component { id: timePage; Pages.TimePage {} }
     Component { id: stopwatchPage; Pages.StopwatchPage {} }
     Component { id: musicPlayerPage; Pages.MusicPlayerPage {} }

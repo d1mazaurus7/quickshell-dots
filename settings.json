@@ -24,13 +24,32 @@
         "temperature": 0.5,
         "width": 420
     },
+    "bar": {
+        "center": [
+            "stopwatch"
+        ],
+        "left": [
+            "workspaces",
+            "musicPlayer"
+        ],
+        "right": [
+            "volume",
+            "bluetooth",
+            "tray"
+        ]
+    },
     "musicPlayer": {
         "backgroundBlur": true,
         "cava": true,
         "coverBackground": true,
-        "danceGif": "Dance Vtuber Sticker.gif",
+        "danceGif": "Umamusume Uma Sticker.gif",
         "danceGifEnabled": true,
         "equalizer": true,
+        "lyrics": true,
+        "lyricsAlign": "right",
+        "lyricsFontSize": 25,
+        "lyricsScroll": false,
+        "lyricsSeek": false,
         "showArtist": true,
         "timelineStyle": "wave",
         "wavyTimeline": true
@@ -65,7 +84,7 @@
     "snow": {
         "capRounding": 0.8500000000000001,
         "driftHeight": 150,
-        "enabled": false,
+        "enabled": true,
         "hideGroundWithTiled": true,
         "intensity": 0.30000000000000004,
         "shakeOff": 0.9500000000000001,
@@ -81,6 +100,7 @@
         "mixerOutputs": true,
         "mixerRestart": true,
         "notificationSound": "click.wav",
+        "osdSound": "click.wav",
         "typeSound": "button.wav"
     },
     "stopwatch": {

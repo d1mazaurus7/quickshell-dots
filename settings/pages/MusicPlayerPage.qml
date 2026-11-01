@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
+import Quickshell
 import "../../shell/config"
 import "../../shell/theme"
 import "../controls"
@@ -163,6 +164,88 @@ ColumnLayout {
         SettingSwitch {
             checked: page.player.equalizer
             onToggled: checked => page.player.equalizer = checked
+        }
+    }
+
+    SettingRow {
+        title: "Текст песни"
+        description: "Вкладка с текстом песни в окне плеера"
+
+        SettingSwitch {
+            checked: page.player.lyrics
+            onToggled: checked => page.player.lyrics = checked
+        }
+    }
+
+    SettingRow {
+        shown: page.player.lyrics
+        child: true
+        title: "Размер текста"
+        description: "Размер строк текста песни"
+
+        SettingSlider {
+            from: 12
+            to: 32
+            stepSize: 1
+            value: page.player.lyricsFontSize
+            formatValue: v => Math.round(v) + " px"
+            onMoved: value => page.player.lyricsFontSize = Math.round(value)
+        }
+    }
+
+    SettingRow {
+        z: alignDropdown.expanded ? 1 : 0
+        shown: page.player.lyrics
+        child: true
+        title: "Выравнивание"
+        description: "Прилипание строк к краю или по центру"
+
+        SettingDropdown {
+            id: alignDropdown
+            readonly property var values: ["left", "center", "right"]
+            readonly property var labels: ["Слева", "По центру", "Справа"]
+            model: labels
+            popupHeight: Tokens.scaled(140)
+            currentValue: labels[Math.max(0, values.indexOf(page.player.lyricsAlign))]
+            onActivated: value => page.player.lyricsAlign = values[labels.indexOf(value)]
+        }
+    }
+
+    SettingRow {
+        shown: page.player.lyrics
+        child: true
+        title: "Прокрутка"
+        description: "Листать текст песни вручную"
+
+        SettingSwitch {
+            checked: page.player.lyricsScroll
+            onToggled: checked => page.player.lyricsScroll = checked
+        }
+    }
+
+    SettingRow {
+        shown: page.player.lyrics
+        child: true
+        title: "Перемотка по строке"
+        description: "Клик по строке перематывает трек к ней"
+
+        SettingSwitch {
+            checked: page.player.lyricsSeek
+            onToggled: checked => page.player.lyricsSeek = checked
+        }
+    }
+
+    SettingRow {
+        shown: page.player.lyrics
+        child: true
+        title: "Кэш текстов"
+        description: "Удалить сохранённые тексты песен"
+
+        SettingButton {
+            icon: "delete"
+            text: "Очистить"
+            onClicked: Quickshell.execDetached(["sh", "-c", 'rm -f -- "$0"/*.json',
+                (Quickshell.env("XDG_CACHE_HOME") || Quickshell.env("HOME") + "/.cache") + "/quickshell/lyrics"])
         }
     }
 }

@@ -95,6 +95,14 @@ Singleton {
                 property real shakeOff: 0.7
             }
 
+            property JsonObject bar: JsonObject {
+                // Модули в блоках бара по порядку: id из shell/bar/BarModules.qml.
+                // Модуль, которого нет ни в одном блоке, скрыт
+                property list<string> left: ["workspaces", "musicPlayer", "stopwatch", "volume"]
+                property list<string> center: ["time"]
+                property list<string> right: ["tray", "bluetooth"]
+            }
+
             property JsonObject time: JsonObject {
                 property bool showSeconds: false
                 property bool showDate: false
@@ -130,6 +138,16 @@ Singleton {
                 // Gif справа от эквалайзера: имя файла из assets/gifs/dance, "" — без gif
                 property string danceGif: ""
                 property bool danceGifEnabled: true
+                // Вкладка «Текст» с текстом песни
+                property bool lyrics: true
+                // Размер строк текста, px до масштабирования
+                property int lyricsFontSize: 19
+                // Выравнивание строк: "left" | "center" | "right"
+                property string lyricsAlign: "center"
+                // Ручная прокрутка текста
+                property bool lyricsScroll: true
+                // Клик по строке — перемотка к ней
+                property bool lyricsSeek: true
             }
 
             property JsonObject workspaces: JsonObject {
