@@ -4,6 +4,7 @@ import QtQuick.Shapes
 import Quickshell
 import "../../theme" as Theme
 import "../../shell/theme"
+import "../../shell/bar"
 import "BarDropdownStack.js" as DropdownStack
 
 // Окно, "выплывающее" из нижней кромки бара под элементом anchorItem.
@@ -23,13 +24,19 @@ PopupWindow {
     // Радиус вогнутых скруглений в месте стыка с баром.
     property int earRadius: Tokens.radius(16)
     // Радиус нижних углов бара: уши не должны заходить на них.
-    property int barRadius: Tokens.radius(20)
+    property int barRadius: BarStyle.radius
+    // Окно срастается с заливкой бара «ушами»; без заливки (модульный стиль) —
+    // отдельная плашка со скруглёнными углами и отступом от бара.
+    property bool attached: BarStyle.filled
+    readonly property int ear: attached ? earRadius : 0
+    readonly property int topRadius: attached ? 0 : radius
+    readonly property int gap: attached ? 0 : BarStyle.popupGap
     property color fillColor: Theme.Palette.background
     property int animDuration: 220
     // Прижать окно к правому краю бара: правого «уха» нет, правая кромка
     // продолжает край бара (нижний правый угол бара владелец делает прямым).
     property bool alignRight: false
-    readonly property int rightEar: alignRight ? 0 : earRadius
+    readonly property int rightEar: alignRight ? 0 : ear
     // Окно постоянного размера (0 — по содержимому): смена ширины и высоты
     // открытого окна анимируется фигурой без ресайза самого окна.
     property int maxContentWidth: 0
@@ -66,7 +73,7 @@ PopupWindow {
     visible: open || revealHeight > 0
     grabFocus: true
     color: "transparent"
-    implicitWidth: windowContentWidth + earRadius + rightEar
+    implicitWidth: windowContentWidth + ear + rightEar
     implicitHeight: Math.max(maxHeight, fullHeight)
     // Ввод только в видимой фигуре: клик по прозрачной части закрывает окно.
     mask: Region { item: maskItem }
@@ -87,12 +94,12 @@ PopupWindow {
     anchor.onAnchoring: {
         const win = root.anchorItem.QsWindow.window;
         const pos = root.anchorItem.QsWindow.itemPosition(root.anchorItem);
-        const minX = root.barRadius + root.earRadius;
+        const minX = root.barRadius + root.ear;
         const maxX = win.width - minX - root.windowContentWidth;
         const bodyX = root.alignRight ? win.width - root.windowContentWidth
             : Math.max(minX, Math.min(maxX, pos.x + root.anchorItem.width / 2 - root.windowContentWidth / 2));
-        root.originX = bodyX - root.earRadius;
-        root.originY = win.height;
+        root.originX = bodyX - root.ear;
+        root.originY = win.height + root.gap;
 
         // Окно ещё не показано — оно будет создано дочерним к верхнему
         // видимому dropdown'у; запоминаем его на всё время показа.
@@ -119,9 +126,14 @@ PopupWindow {
     onImplicitWidthChanged: if (visible) anchor.updateAnchor()
     onImplicitHeightChanged: if (visible) anchor.updateAnchor()
 
-    Component.onDestruction: DropdownStack.remove(root)
+    Component.onDestruction: {
+        if (visible)
+            BarStyle.openPopups -= 1;
+        DropdownStack.remove(root);
+    }
 
     onVisibleChanged: {
+        BarStyle.openPopups += visible ? 1 : -1;
         if (visible) {
             DropdownStack.push(root);
         } else {
@@ -139,45 +151,51 @@ PopupWindow {
     Item {
         id: maskItem
         x: root.shapeX
-        width: root.shownWidth + root.earRadius + root.rightEar
+        width: root.shownWidth + root.ear + root.rightEar
         height: root.revealHeight
     }
 
     Shape {
         x: root.shapeX
-        width: root.shownWidth + root.earRadius + root.rightEar
+        width: root.shownWidth + root.ear + root.rightEar
         height: parent.height
         preferredRendererType: Shape.CurveRenderer
 
         ShapePath {
             id: bg
 
-            readonly property real w: root.shownWidth + root.earRadius + root.rightEar
+            readonly property real w: root.shownWidth + root.ear + root.rightEar
             readonly property real h: root.revealHeight
-            readonly property real er: root.earRadius
+            readonly property real er: root.ear
             readonly property real erY: Math.min(er, h / 2)
             readonly property real rer: root.rightEar
             readonly property real rerY: Math.min(rer, h / 2)
             readonly property real br: root.radius
             readonly property real brY: Math.min(br, h / 2)
+            // Верхние углы: у прикреплённого окна вместо них «уши»
+            readonly property real tr: root.topRadius
+            readonly property real trY: Math.min(tr, h / 2)
 
             strokeWidth: -1
             fillColor: root.fillColor
 
-            startX: 0; startY: 0
-            PathLine { x: bg.w; y: 0 }
-            PathArc { x: bg.w - bg.rer; y: bg.rerY; radiusX: bg.rer; radiusY: bg.rerY; direction: PathArc.Counterclockwise }
+            // Дуги нулевого радиуса (ухо или верхний угол, которых нет) вырождаются в точку
+            startX: bg.tr; startY: 0
+            PathLine { x: bg.w - bg.tr; y: 0 }
+            PathArc { x: bg.w; y: bg.trY; radiusX: bg.tr; radiusY: bg.trY }
+            PathArc { x: bg.w - bg.rer; y: bg.trY + bg.rerY; radiusX: bg.rer; radiusY: bg.rerY; direction: PathArc.Counterclockwise }
             PathLine { x: bg.w - bg.rer; y: bg.h - bg.brY }
             PathArc { x: bg.w - bg.rer - bg.br; y: bg.h; radiusX: bg.br; radiusY: bg.brY }
             PathLine { x: bg.er + bg.br; y: bg.h }
             PathArc { x: bg.er; y: bg.h - bg.brY; radiusX: bg.br; radiusY: bg.brY }
-            PathLine { x: bg.er; y: bg.erY }
-            PathArc { x: 0; y: 0; radiusX: bg.er; radiusY: bg.erY; direction: PathArc.Counterclockwise }
+            PathLine { x: bg.er; y: bg.erY + bg.trY }
+            PathArc { x: 0; y: bg.trY; radiusX: bg.er; radiusY: bg.erY; direction: PathArc.Counterclockwise }
+            PathArc { x: bg.tr; y: 0; radiusX: bg.tr; radiusY: bg.trY }
         }
     }
 
     Item {
-        x: root.shapeX + root.earRadius
+        x: root.shapeX + root.ear
         width: root.shownWidth
         height: root.revealHeight
         clip: true

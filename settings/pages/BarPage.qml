@@ -6,7 +6,8 @@ import "../../shell/theme"
 import "../../shell/bar"
 import "../controls"
 
-// Раздел «Бар»: Config.options.bar — расстановка модулей по блокам перетаскиванием
+// Раздел «Бар»: Config.options.bar — стиль, автоскрытие и расстановка модулей
+// по блокам перетаскиванием
 ColumnLayout {
     id: page
 
@@ -43,9 +44,86 @@ ColumnLayout {
         font.pixelSize: Tokens.fontLarge.pixelSize + Tokens.scaled(4)
     }
 
+    SettingRow {
+        // Раскрытый список рисуется поверх следующих пунктов
+        z: styleDropdown.expanded ? 1 : 0
+        title: "Стиль"
+        description: "Форма и положение бара"
+
+        SettingDropdown {
+            id: styleDropdown
+            readonly property var styles: [
+                { value: "attached", title: "Прилипающий к верху" },
+                { value: "full", title: "Обычный" },
+                { value: "floating", title: "Плавающий" },
+                { value: "modular", title: "Модульный" }
+            ]
+            model: styles.map(s => s.title)
+            popupHeight: Tokens.scaled(176)
+            currentValue: (styles.find(s => s.value === page.bar.style) ?? styles[0]).title
+            onActivated: value => page.bar.style = styles.find(s => s.title === value).value
+        }
+    }
+
+    SettingRow {
+        shown: page.bar.style === "floating"
+        child: true
+        title: "Отступ сверху"
+
+        SettingSlider {
+            value: page.bar.floatingMarginTop
+            from: 0
+            to: 40
+            stepSize: 1
+            formatValue: v => Math.round(v) + " px"
+            onMoved: value => page.bar.floatingMarginTop = Math.round(value)
+        }
+    }
+
+    SettingRow {
+        shown: page.bar.style === "floating"
+        child: true
+        title: "Отступ по бокам"
+
+        SettingSlider {
+            value: page.bar.floatingMarginSide
+            from: 0
+            to: 200
+            stepSize: 1
+            formatValue: v => Math.round(v) + " px"
+            onMoved: value => page.bar.floatingMarginSide = Math.round(value)
+        }
+    }
+
+    SettingRow {
+        title: "Автоскрытие"
+        description: "Бар выезжает при наведении курсора и прячется, когда курсор уходит"
+
+        SettingSwitch {
+            checked: page.bar.autoHide
+            onToggled: checked => page.bar.autoHide = checked
+        }
+    }
+
+    SettingRow {
+        shown: page.bar.autoHide
+        child: true
+        title: "Задержка скрытия"
+        description: "Через сколько бар прячется после ухода курсора"
+
+        SettingSlider {
+            value: page.bar.autoHideDelay
+            from: 0
+            to: 3000
+            stepSize: 100
+            formatValue: v => (Math.round(v) / 1000).toFixed(1) + " с"
+            onMoved: value => page.bar.autoHideDelay = Math.round(value)
+        }
+    }
+
     Text {
         Layout.fillWidth: true
-        Layout.topMargin: -Tokens.spacingMediumV
+        Layout.topMargin: Tokens.spacingMediumV
         text: "Перетащите модуль в блок бара; порядок в блоке — порядок на баре. Верните модуль в список, чтобы убрать его с бара"
         color: page.colors.on_surface_variant
         font: Tokens.fontSmall

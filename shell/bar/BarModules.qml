@@ -13,7 +13,7 @@ import "../../Bar/stopwatch" as Stopwatch
 // Реестр модулей бара: id (ключ в Config.options.bar), название для настроек, компонент.
 // Новый модуль — импорт, Component и строка в list.
 // Компонент получает required property bar — окно бара (Shell.qml):
-// implicitHeight, modelData (экран), stopwatch, musicModule, toggleMusicPlayer().
+// barHeight, modelData (экран), stopwatch, musicModule, toggleMusicPlayer().
 Singleton {
     id: root
 
@@ -36,7 +36,7 @@ Singleton {
         Workspaces.Workspaces {
             required property var bar
             output: bar.modelData.name
-            barHeight: bar.implicitHeight
+            barHeight: bar.barHeight
         }
     }
 
@@ -45,7 +45,7 @@ Singleton {
         MusicPlayer.MusicPlayerModule {
             id: music
             required property var bar
-            size: bar.implicitHeight - Tokens.scaled(8)
+            size: bar.barHeight - Tokens.scaled(8)
             onOpenRequested: bar.toggleMusicPlayer()
             // Окно плеера в баре открывается под этим модулем
             Component.onCompleted: bar.musicModule = music
@@ -59,7 +59,7 @@ Singleton {
         Stopwatch.StopwatchWidget {
             required property var bar
             stopwatch: bar.stopwatch
-            barHeight: bar.implicitHeight
+            barHeight: bar.barHeight
         }
     }
 
@@ -67,7 +67,7 @@ Singleton {
         id: volume
         Volume.Volume {
             required property var bar
-            barHeight: bar.implicitHeight
+            barHeight: bar.barHeight
         }
     }
 
@@ -82,7 +82,7 @@ Singleton {
         id: tray
         Tray.Tray {
             required property var bar
-            barHeight: bar.implicitHeight
+            barHeight: bar.barHeight
         }
     }
 
@@ -90,7 +90,7 @@ Singleton {
         id: bluetooth
         Bluetooth.Bluetooth {
             required property var bar
-            barHeight: bar.implicitHeight
+            barHeight: bar.barHeight
         }
     }
 }

@@ -19,7 +19,7 @@
 | `appearance` | `scale`, `spacingHorizontal`, `spacingVertical`, `radiusScale`, `animationScale` (real), `borders` (bool) |
 | `typography` | `family` (string), `size` (int, базовый px)            |
 | `snow`       | `enabled`, `sweep`, `hideGroundWithTiled`, `windowDrifts` (bool), `intensity`, `speed`, `capRounding`, `shakeOff` (real), `driftHeight`, `windowDriftHeight` (int, лог. px) |
-| `bar`        | `left`, `center`, `right` (list<string>, id модулей из `shell/bar/BarModules.qml` по порядку; модуля нет ни в одном блоке — он скрыт). Менять только присваиванием нового массива |
+| `bar`        | `left`, `center`, `right` (list<string>, id модулей из `shell/bar/BarModules.qml` по порядку; модуля нет ни в одном блоке — он скрыт). Менять только присваиванием нового массива; `style` (string: `attached` / `full` / `floating` / `modular`), `floatingMarginTop`, `floatingMarginSide` (int, лог. px), `autoHide` (bool), `autoHideDelay` (int, мс) |
 | `time`       | `showSeconds`, `showDate`, `showWeekday`, `shortWeekday` (bool) |
 | `stopwatch`  | `side` (string: `right` / `left`), `barWidget`, `blinkIcon` (bool), `icon` (string) |
 | `musicPlayer` | `cava`, `coverBackground`, `backgroundBlur`, `wavyTimeline`, `showArtist`, `equalizer` (bool), `timelineStyle` (string: `wave` / `material`), `danceGif` (string, имя файла из `assets/gifs/dance`, `""` — нет), `danceGifEnabled`, `lyrics`, `lyricsScroll`, `lyricsSeek` (bool), `lyricsFontSize` (int, px), `lyricsAlign` (string: `left` / `center` / `right`) |

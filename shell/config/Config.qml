@@ -101,6 +101,16 @@ Singleton {
                 property list<string> left: ["workspaces", "musicPlayer", "stopwatch", "volume"]
                 property list<string> center: ["time"]
                 property list<string> right: ["tray", "bluetooth"]
+                // Стиль: "attached" — прилипает к верху | "full" — во всю ширину без скруглений |
+                // "floating" — плавающий | "modular" — только подложки модулей
+                property string style: "attached"
+                // Отступы плавающего бара, лог. px
+                property int floatingMarginTop: 8
+                property int floatingMarginSide: 20
+                // Прятать бар, пока курсор не над ним (место под бар остаётся)
+                property bool autoHide: false
+                // Через сколько бар прячется после ухода курсора, мс
+                property int autoHideDelay: 300
             }
 
             property JsonObject time: JsonObject {

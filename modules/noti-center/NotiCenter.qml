@@ -35,7 +35,7 @@ Item {
 
     readonly property bool open: openOutput !== "" && openOutput === screen.name
     // Место в баре под панель (вместе с левым «ухом»).
-    readonly property real fullReserve: dropdown.contentWidth + dropdown.earRadius
+    readonly property real fullReserve: dropdown.contentWidth + dropdown.ear
     // Панель видна (в т.ч. во время анимации закрытия): бар убирает нижний правый угол.
     readonly property bool shown: dropdown.visible
     property real reserve: open ? fullReserve : 0

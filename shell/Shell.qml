@@ -67,12 +67,29 @@ Item {
             id: barWindow
             required property var modelData
             
-            // Настройки окна
-            implicitHeight: Tokens.scaled(56)
+            // Настройки окна: отступ сверху плавающего бара входит в окно —
+            // выпадающие окна крепятся к нижней кромке, наведение на отступ показывает бар
+            readonly property int barHeight: BarStyle.barHeight
+            implicitHeight: barHeight + BarStyle.marginTop
             color: "transparent"
             
             // Привязка к экрану
             screen: modelData
+
+            // Автоскрытие: бар выезжает при наведении и не прячется, пока открыто выпадающее окно
+            readonly property bool revealed: !BarStyle.cfg.autoHide || barHover.hovered
+                || BarStyle.openPopups > 0 || notiCenter.shown || hideDelay.running
+            Timer {
+                id: hideDelay
+                interval: BarStyle.cfg.autoHideDelay
+            }
+            Connections {
+                target: barHover
+                function onHoveredChanged(): void {
+                    if (!barHover.hovered)
+                        hideDelay.restart();
+                }
+            }
 
             // Контекст для модулей бара (shell/bar/BarModules.qml)
             readonly property var stopwatch: stopwatchWindow
@@ -102,95 +119,114 @@ Item {
             }
             
             margins {
-                left: Math.round(20 * Tokens.spacingScaleH)
-                right: Math.round(20 * Tokens.spacingScaleH)
+                left: BarStyle.marginSide
+                right: BarStyle.marginSide
             }
-            
-            // Фон панели
-            Rectangle {
-                id: barBackground
-                radius: Tokens.radius(20)
-                topLeftRadius: 0
-                topRightRadius: 0
-                // Под открытым центром уведомлений бар переходит в панель без скругления
-                bottomRightRadius: notiCenter.shown ? 0 : Tokens.radius(20)
+
+            // Наведение отслеживается на всём окне, в т.ч. пока бар спрятан
+            Item {
+                anchors.fill: parent
+                HoverHandler { id: barHover }
+            }
+
+            // Бар целиком; при автоскрытии уезжает вверх
+            Item {
+                id: barContent
                 width: parent.width
-                height: parent.height
-                color: Theme.Palette.background
-            }
+                height: barWindow.barHeight
+                y: BarStyle.marginTop + (barWindow.revealed ? 0 : -(barWindow.barHeight + BarStyle.marginTop))
+                opacity: barWindow.revealed ? 1 : 0
+                Behavior on y { NumberAnimation { duration: Tokens.animationMedium; easing.type: Easing.OutCubic } }
+                Behavior on opacity { NumberAnimation { duration: Tokens.animationMedium; easing.type: Easing.OutCubic } }
 
-            // Окно для выбора обоев: только на первом экране, чтобы IPC "wallpaper" был один
-            Loader {
-                active: barWindow.modelData === Quickshell.screens[0]
-                sourceComponent: Bar.SetWallpaper {
+                // Фон панели (в модульном стиле — только подложки модулей)
+                Rectangle {
+                    id: barBackground
+                    visible: BarStyle.filled
+                    radius: BarStyle.radius
+                    topLeftRadius: BarStyle.roundTop ? BarStyle.radius : 0
+                    topRightRadius: BarStyle.roundTop ? BarStyle.radius : 0
+                    // Под открытым центром уведомлений бар переходит в панель без скругления
+                    bottomRightRadius: notiCenter.shown ? 0 : BarStyle.radius
+                    width: parent.width
+                    height: parent.height
+                    color: Theme.Palette.background
+                }
+
+                // Окно для выбора обоев: только на первом экране, чтобы IPC "wallpaper" был один
+                Loader {
+                    active: barWindow.modelData === Quickshell.screens[0]
+                    sourceComponent: Bar.SetWallpaper {
+                        screen: barWindow.modelData
+                        barHeight: barWindow.implicitHeight
+                    }
+                }
+
+                // Центр уведомлений: якорь у правого края бара
+                NotiCenter.NotiCenter {
+                    id: notiCenter
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
                     screen: barWindow.modelData
-                    barHeight: barWindow.implicitHeight
+                    // Без «ушей» панель отделена от бара отступом
+                    barHeight: barWindow.implicitHeight + (BarStyle.filled ? 0 : BarStyle.popupGap)
+                    openOutput: shellRoot.notiCenterOutput
+                    ipcEnabled: barWindow.modelData === Quickshell.screens[0]
+                    notifications: notificationState
+                    onOpenOutputRequested: name => shellRoot.notiCenterOutput = name
                 }
-            }
 
-            // Центр уведомлений: якорь у правого края бара
-            NotiCenter.NotiCenter {
-                id: notiCenter
-                anchors.right: parent.right
-                anchors.top: parent.top
-                anchors.bottom: parent.bottom
-                screen: barWindow.modelData
-                barHeight: barWindow.implicitHeight
-                openOutput: shellRoot.notiCenterOutput
-                ipcEnabled: barWindow.modelData === Quickshell.screens[0]
-                notifications: notificationState
-                onOpenOutputRequested: name => shellRoot.notiCenterOutput = name
-            }
-
-            // Окно плеера с эквалайзером под модулем музыки (только пока модуль в баре)
-            Loader {
-                id: musicEqualizerLoader
-                active: barWindow.musicModule !== null
-                sourceComponent: MusicEqualizer.MusicEqualizer {
-                    anchorItem: barWindow.musicModule
-                    player: barWindow.musicModule?.player ?? null
-                    equalizer: equalizerState
-                    onDismissed: open = false
+                // Окно плеера с эквалайзером под модулем музыки (только пока модуль в баре)
+                Loader {
+                    id: musicEqualizerLoader
+                    active: barWindow.musicModule !== null
+                    sourceComponent: MusicEqualizer.MusicEqualizer {
+                        anchorItem: barWindow.musicModule
+                        player: barWindow.musicModule?.player ?? null
+                        equalizer: equalizerState
+                        onDismissed: open = false
+                    }
                 }
-            }
 
-            // IPC: открыть/закрыть плеер на мониторе в фокусе, на остальных — закрыть
-            Connections {
-                target: playerIpc
-                function onRequested(action: string, output: string): void {
-                    const musicEqualizer = barWindow.musicEqualizer;
-                    if (!musicEqualizer)
-                        return;
-                    if (output !== barWindow.modelData.name)
-                        musicEqualizer.open = false;
-                    else
-                        musicEqualizer.open = action === "toggle" ? !musicEqualizer.open : action === "open";
+                // IPC: открыть/закрыть плеер на мониторе в фокусе, на остальных — закрыть
+                Connections {
+                    target: playerIpc
+                    function onRequested(action: string, output: string): void {
+                        const musicEqualizer = barWindow.musicEqualizer;
+                        if (!musicEqualizer)
+                            return;
+                        if (output !== barWindow.modelData.name)
+                            musicEqualizer.open = false;
+                        else
+                            musicEqualizer.open = action === "toggle" ? !musicEqualizer.open : action === "open";
+                    }
                 }
-            }
 
-            // Содержимое панели: блоки слева, посередине и справа (Config.options.bar)
-            BarSection {
-                anchors.left: parent.left
-                anchors.verticalCenter: parent.verticalCenter
-                anchors.leftMargin: Math.round(10 * Tokens.spacingScaleH)
-                bar: barWindow
-                ids: Config.options.bar.left
-            }
+                // Содержимое панели: блоки слева, посередине и справа (Config.options.bar)
+                BarSection {
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.leftMargin: Math.round(10 * Tokens.spacingScaleH)
+                    bar: barWindow
+                    ids: Config.options.bar.left
+                }
 
-            // Центр бара, не зависит от ширины боковых блоков
-            BarSection {
-                anchors.centerIn: barBackground
-                bar: barWindow
-                ids: Config.options.bar.center
-            }
+                // Центр бара, не зависит от ширины боковых блоков
+                BarSection {
+                    anchors.centerIn: barBackground
+                    bar: barWindow
+                    ids: Config.options.bar.center
+                }
 
-            BarSection {
-                anchors.right: parent.right
-                anchors.verticalCenter: parent.verticalCenter
-                // Модули расталкиваются влево, освобождая место под центр уведомлений
-                anchors.rightMargin: Math.round(10 * Tokens.spacingScaleH) + notiCenter.reserve
-                bar: barWindow
-                ids: Config.options.bar.right
+                BarSection {
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    // Модули расталкиваются влево, освобождая место под центр уведомлений
+                    anchors.rightMargin: Math.round(10 * Tokens.spacingScaleH) + notiCenter.reserve
+                    bar: barWindow
+                    ids: Config.options.bar.right
+                }
             }
         }
     }

@@ -31,8 +31,6 @@ Item {
     property int actionFontSize: 13
     // Радиус вогнутых скруглений ("ушей") в месте стыка окна с баром.
     property int earRadius: Tokens.radius(16)
-    // Радиус нижних углов бара: уши не должны заходить на них.
-    property int barRadius: Tokens.radius(20)
     property string fontFamily: "JetBrains Mono"
     property int animDuration: 220
     property int hoverDuration: 120
@@ -133,7 +131,6 @@ Item {
         padding: root.menuPadding
         radius: root.menuRadius
         earRadius: root.earRadius
-        barRadius: root.barRadius
         animDuration: root.animDuration
         onDismissed: root.open = false
 
