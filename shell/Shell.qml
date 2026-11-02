@@ -15,6 +15,7 @@ import "../Bar/stopwatch" as Stopwatch
 import "../services/screenshot" as Screenshot
 import "../Bar/assistant" as Assistant
 import "../Bar/osd" as Osd
+import "../Bar/power" as Power
 
 Item {
     id: shellRoot
@@ -59,6 +60,8 @@ Item {
     Snow.Snow {}
     // Окно громкости и Caps/Num Lock
     Osd.Osd {}
+    // Меню питания: qs ipc call power toggle
+    Power.PowerMenu {}
     // Окно Bar для каждого экрана
     Variants {
         model: Quickshell.screens
@@ -72,7 +75,19 @@ Item {
             readonly property int barHeight: BarStyle.barHeight
             implicitHeight: barHeight + BarStyle.marginTop
             color: "transparent"
-            
+            WlrLayershell.namespace: "qs:bar"
+            // Размытие под фоном панели (ext-background-effect-v1); barContent двигается
+            // при автоскрытии, поэтому регион привязан к нему, а не к фону
+            BackgroundEffect.blurRegion: BarStyle.filled ? barBlurRegion : null
+            Region {
+                id: barBlurRegion
+                item: barContent
+                topLeftRadius: barBackground.topLeftRadius
+                topRightRadius: barBackground.topRightRadius
+                bottomLeftRadius: barBackground.bottomLeftRadius
+                bottomRightRadius: barBackground.bottomRightRadius
+            }
+
             // Привязка к экрану
             screen: modelData
 
@@ -103,8 +118,9 @@ Item {
             }
 
             // Пока плеер виден (включая анимацию закрытия), бар держит клавиатуру — иначе Esc
-            // не доходит до плеера, а ранний сброс фокуса снимает захват и окно пропадает рывком
-            WlrLayershell.keyboardFocus: musicEqualizer?.visible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+            // не доходит до плеера, а ранний сброс фокуса снимает захват и окно пропадает рывком.
+            // То же для центра уведомлений: без этого поля ввода в нём не получают клавиши
+            WlrLayershell.keyboardFocus: musicEqualizer?.visible || notiCenter.shown ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
             Shortcut {
                 sequence: "Escape"
@@ -150,7 +166,7 @@ Item {
                     bottomRightRadius: notiCenter.shown ? 0 : BarStyle.radius
                     width: parent.width
                     height: parent.height
-                    color: Theme.Palette.background
+                    color: Qt.alpha(Theme.Palette.background, Tokens.surfaceOpacity)
                 }
 
                 // Окно для выбора обоев: только на первом экране, чтобы IPC "wallpaper" был один

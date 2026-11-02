@@ -10,6 +10,8 @@ Rectangle {
     property string description
     // Зависимый пункт: сдвинут вправо под родительским
     property bool child: false
+    // Уровень вложенности: каждый уровень сдвигает пункт вправо
+    property int depth: child ? 1 : 0
     // Показ/скрытие с разворачиванием вниз (вместо visible)
     property bool shown: true
 
@@ -30,7 +32,7 @@ Rectangle {
     readonly property var colors: Tokens.colors
 
     Layout.fillWidth: true
-    Layout.leftMargin: child ? Tokens.spacingLarge * 2 : 0
+    Layout.leftMargin: depth * Tokens.spacingLarge * 2
     // Пока пункт свёрнут, съедаем spacing родительского ColumnLayout — без скачка в конце
     Layout.topMargin: -(1 - reveal) * (parent?.spacing ?? 0)
     implicitHeight: fullHeight * reveal

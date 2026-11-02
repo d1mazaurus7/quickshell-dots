@@ -7,6 +7,7 @@ import QtQuick.Shapes
 import "../theme" as Theme
 import "../shell/theme"
 import "../components/animations" as Flow
+import "../shell/config"
 
 Item {
     id: wallpaperPicker
@@ -16,6 +17,44 @@ Item {
     property real barHeight: 0
 
     property bool open: false
+
+    // Секретные обои: passwordMode — показан ввод пароля, secret — открыта секретная папка
+    property bool passwordMode: false
+    property bool secret: false
+
+    function toggleSecret(): void {
+        if (secret || passwordMode) {
+            passwordMode = false;
+            secret = false;
+        } else {
+            passwordInput.text = "";
+            passwordMode = true;
+        }
+    }
+
+    function tryPassword(): void {
+        const password = Config.options.wallpaper.password;
+        if (password.length > 0 && passwordInput.text === password) {
+            secret = true;
+            passwordMode = false;
+        } else {
+            passwordInput.text = "";
+            shake.restart();
+        }
+    }
+
+    onSecretChanged: {
+        wallpaperGrid.model = [];
+        loadWallpapers();
+        wallpaperGrid.currentIndex = 0;
+    }
+
+    onPasswordModeChanged: {
+        if (passwordMode)
+            passwordInput.forceActiveFocus();
+        else
+            wallpaperGrid.forceActiveFocus();
+    }
 
     function toggle(): void {
         open = !open;
@@ -39,16 +78,27 @@ Item {
 
     onOpenChanged: {
         if (open) {
-            loadWallpapersProcess.running = true;
+            passwordMode = false;
+            if (secret)
+                secret = false;
+            else
+                loadWallpapers();
             wallpaperGrid.currentIndex = 0;
             wallpaperGrid.forceActiveFocus();
         }
     }
 
+    // Команда задаётся в момент запуска: привязка к secret не успевала обновиться до старта
+    function loadWallpapers(): void {
+        const dir = Quickshell.env("HOME") + (secret ? "/Pictures/.secret_wallpapers/" : "/Pictures/Wallpapers/");
+        loadWallpapersProcess.running = false;
+        loadWallpapersProcess.command = ["sh", "-c", "find \"$1\" -type f \\( -name '*.jpg' -o -name '*.jpeg' -o -name '*.png' -o -name '*.webp' \\) | sort", "sh", dir];
+        loadWallpapersProcess.running = true;
+    }
+
     // Процесс загрузки списка обоев
     Process {
         id: loadWallpapersProcess
-        command: ["sh", "-c", "find /home/valtrynx/Pictures/Wallpapers/ -type f \\( -name '*.jpg' -o -name '*.jpeg' -o -name '*.png' -o -name '*.webp' \\) | sort"]
 
         stdout: StdioCollector {
             onStreamFinished: {
@@ -226,7 +276,7 @@ Item {
 
                             Text {
                                 anchors.centerIn: parent
-                                text: "Выбор обоев"
+                                text: wallpaperPicker.secret ? "Секретные обои" : "Выбор обоев"
                                 color: Theme.Palette.on_surface
                                 font.family: "JetBrains Mono"
                                 font.pointSize: 13
@@ -237,6 +287,16 @@ Item {
                         Item {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 404
+
+                            Item {
+                                id: gridLayer
+                                anchors.fill: parent
+                                opacity: wallpaperPicker.passwordMode ? 0 : 1
+                                scale: wallpaperPicker.passwordMode ? 0.96 : 1
+                                visible: opacity > 0
+
+                                Behavior on opacity { NumberAnimation { duration: Tokens.animationMedium; easing.type: Easing.OutCubic } }
+                                Behavior on scale { NumberAnimation { duration: Tokens.animationMedium; easing.type: Easing.OutCubic } }
 
                             // Сетка с обоями
                             GridView {
@@ -316,6 +376,11 @@ Item {
                                 // Звук листания: один раз на нажатие, автоповтор при удержании — без звука.
                                 // Событие не принимаем, чтобы навигацию обработал сам GridView
                                 Keys.onPressed: (event) => {
+                                    if (event.key === Qt.Key_S && (event.modifiers & Qt.AltModifier)) {
+                                        event.accepted = true;
+                                        wallpaperPicker.toggleSecret();
+                                        return;
+                                    }
                                     if (event.isAutoRepeat || count === 0)
                                         return;
                                     if (event.key === Qt.Key_Left || event.key === Qt.Key_Right
@@ -393,6 +458,96 @@ Item {
                                                         pressContentY + delta * scrollRatio
                                                     )
                                                 );
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            }
+
+                            // Ввод пароля секретных обоев
+                            Item {
+                                id: passwordLayer
+                                anchors.fill: parent
+                                opacity: wallpaperPicker.passwordMode ? 1 : 0
+                                visible: opacity > 0
+
+                                Behavior on opacity { NumberAnimation { duration: Tokens.animationMedium; easing.type: Easing.OutCubic } }
+
+                                Column {
+                                    anchors.centerIn: parent
+                                    anchors.verticalCenterOffset: wallpaperPicker.passwordMode ? 0 : Tokens.spacingMedium
+                                    spacing: Tokens.spacingLargeV
+
+                                    Behavior on anchors.verticalCenterOffset { NumberAnimation { duration: Tokens.animationMedium; easing.type: Easing.OutCubic } }
+
+                                    Text {
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        text: "ах ты шалунишка, ну заходи!"
+                                        color: Theme.Palette.on_surface
+                                        font: Tokens.fontLarge
+                                    }
+
+                                    Rectangle {
+                                        id: passwordField
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        width: Tokens.scaled(280)
+                                        height: passwordInput.implicitHeight + Tokens.spacingMediumV * 2
+                                        radius: Tokens.radiusMedium
+                                        color: passwordArea.containsMouse && !passwordInput.activeFocus
+                                               ? Theme.Palette.surface_container_highest
+                                               : Theme.Palette.surface_container_high
+                                        border.width: passwordInput.activeFocus ? 2 : 1
+                                        border.color: shake.running ? Theme.Palette.error
+                                                    : passwordInput.activeFocus ? Theme.Palette.primary
+                                                    : Theme.Palette.outline_variant
+
+                                        Behavior on color { ColorAnimation { duration: Tokens.animationFast } }
+                                        Behavior on border.color { ColorAnimation { duration: Tokens.animationFast } }
+
+                                        transform: Translate { id: shakeShift }
+
+                                        SequentialAnimation {
+                                            id: shake
+                                            NumberAnimation { target: shakeShift; property: "x"; to: -8; duration: 50; easing.type: Easing.OutQuad }
+                                            NumberAnimation { target: shakeShift; property: "x"; to: 6; duration: 80; easing.type: Easing.InOutQuad }
+                                            NumberAnimation { target: shakeShift; property: "x"; to: -3; duration: 70; easing.type: Easing.InOutQuad }
+                                            NumberAnimation { target: shakeShift; property: "x"; to: 0; duration: 60; easing.type: Easing.OutQuad }
+                                        }
+
+                                        MouseArea {
+                                            id: passwordArea
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.IBeamCursor
+                                            onClicked: passwordInput.forceActiveFocus()
+                                        }
+
+                                        TextInput {
+                                            id: passwordInput
+                                            anchors.left: parent.left
+                                            anchors.right: parent.right
+                                            anchors.leftMargin: Tokens.spacingMedium
+                                            anchors.rightMargin: Tokens.spacingMedium
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            echoMode: TextInput.Password
+                                            horizontalAlignment: TextInput.AlignHCenter
+                                            color: Theme.Palette.on_surface
+                                            selectionColor: Theme.Palette.primary
+                                            selectedTextColor: Theme.Palette.on_primary
+                                            font: Tokens.fontMedium
+                                            clip: true
+
+                                            onAccepted: wallpaperPicker.tryPassword()
+
+                                            Keys.onPressed: (event) => {
+                                                if (event.key === Qt.Key_S && (event.modifiers & Qt.AltModifier)) {
+                                                    event.accepted = true;
+                                                    wallpaperPicker.toggleSecret();
+                                                } else if (event.key === Qt.Key_Escape) {
+                                                    event.accepted = true;
+                                                    wallpaperPicker.passwordMode = false;
+                                                }
                                             }
                                         }
                                     }

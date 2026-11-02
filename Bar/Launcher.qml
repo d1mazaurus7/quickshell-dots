@@ -2,11 +2,14 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import QtQuick
+// Отдельно: имя Flow занято импортом анимаций
+import QtQuick as QQ
 import QtQuick.Layouts
 import "../theme" as Theme
 import "../shell/config"
 import "../shell/theme"
 import "../components/animations" as Flow
+import "../components" as Components
 import "EmojiData.js" as EmojiData
 
 PanelWindow {
@@ -36,6 +39,8 @@ PanelWindow {
 
     property bool open: false
 
+    readonly property var cfg: Config.options.launcher
+
     visible: open || slideAnim.running
 
     onOpenChanged: {
@@ -45,10 +50,10 @@ PanelWindow {
             appList.currentIndex = 0;
             searchField.forceActiveFocus();
             slideAnim.from = 0;
-            slideAnim.to = panel.height;
+            slideAnim.to = panel.extent;
             slideAnim.restart();
         } else {
-            slideAnim.from = panel.height;
+            slideAnim.from = panel.extent;
             slideAnim.to = 0;
             slideAnim.restart();
         }
@@ -71,13 +76,13 @@ PanelWindow {
     }
 
     // Режим команд: активен когда текст начинается с ">"
-    property bool commandMode: searchField.text.length > 0 && searchField.text.charAt(0) === ">"
+    property bool commandMode: cfg.commandShell && searchField.text.length > 0 && searchField.text.charAt(0) === ">"
 
     // Команда без префикса ">"
     property string commandText: commandMode ? searchField.text.substring(1).trim() : ""
 
     // Система тегов: активен когда текст начинается с "/"
-    property bool tagMode: searchField.text.length > 0 && searchField.text.charAt(0) === "/"
+    property bool tagMode: tagCommands.length > 0 && searchField.text.length > 0 && searchField.text.charAt(0) === "/"
 
     // Текущий тег (часть после "/" до пробела)
     property string currentTag: {
@@ -96,8 +101,8 @@ PanelWindow {
     }
 
     // Поддерживаемые теги
-    property bool emojiMode: tagMode && currentTag === "emoji"
-    property bool webMode: tagMode && currentTag === "web"
+    property bool emojiMode: tagMode && cfg.commandEmoji && currentTag === "emoji"
+    property bool webMode: tagMode && cfg.commandWeb && currentTag === "web"
 
     // Поисковые системы для /web
     readonly property var webEngines: [
@@ -113,23 +118,44 @@ PanelWindow {
 
     // Список тег-команд для автодополнения
     readonly property var tagCommands: [
-        { tag: "emoji", description: "Поиск эмоджи" },
-        { tag: "web", description: "Поиск в интернете" }
-    ]
+        { tag: "emoji", description: "Поиск эмоджи", enabled: cfg.commandEmoji },
+        { tag: "web", description: "Поиск в интернете", enabled: cfg.commandWeb }
+    ].filter(t => t.enabled)
 
-    // Режим автодополнения: после "/", ещё без пробела (тег ещё печатается)
-    property bool tagSuggestMode: tagMode && searchField.text.substring(1).indexOf(" ") === -1
+    readonly property string placeholder: {
+        var hints = [];
+        if (cfg.commandShell) hints.push("> команда");
+        if (cfg.commandEmoji) hints.push("/emoji эмоджи");
+        if (cfg.commandWeb) hints.push("/web поиск");
+        if (cfg.tags.length > 0) hints.push("#тег");
+        return "Поиск приложений..." + (hints.length > 0 ? " (" + hints.join(", ") + ")" : "");
+    }
+
+    // Пользовательские теги программ: текст начинается с "#"
+    property bool appTagMode: cfg.tags.length > 0 && searchField.text.length > 0 && searchField.text.charAt(0) === "#"
+
+    // Режим автодополнения: после "/" или "#", ещё без пробела (тег ещё печатается)
+    property bool tagSuggestMode: (tagMode || appTagMode) && searchField.text.substring(1).indexOf(" ") === -1
 
     // Отфильтрованные предложения по текущему тегу
     property var tagSuggestions: {
         if (!tagSuggestMode) return [];
-        var prefix = currentTag.toLowerCase();
+        var prefix = searchField.text.substring(1).toLowerCase();
+        var source = appTagMode
+            ? cfg.tags.map(t => ({ prefix: "#", tag: t.name, description: "Программ: " + t.apps.length }))
+            : tagCommands.map(c => ({ prefix: "/", tag: c.tag, description: c.description }));
         var result = [];
-        for (var i = 0; i < tagCommands.length; i++) {
-            if (prefix === "" || tagCommands[i].tag.toLowerCase().indexOf(prefix) === 0)
-                result.push(tagCommands[i]);
+        for (var i = 0; i < source.length; i++) {
+            if (prefix === "" || source[i].tag.toLowerCase().indexOf(prefix) === 0)
+                result.push(source[i]);
         }
         return result;
+    }
+
+    function openAppTag(name): void {
+        searchField.text = "#" + name + " ";
+        searchField.cursorPosition = searchField.text.length;
+        searchField.forceActiveFocus();
     }
 
     // Процесс для запуска команд в foot
@@ -166,16 +192,26 @@ PanelWindow {
             width: 600
             height: 500
 
-            x: (parent.width - width) / 2
-            y: parent.height - panel.yOffset
+            // Насколько панель выдвинута от края экрана
+            readonly property real extent: launcher.cfg.position === "left" || launcher.cfg.position === "right" ? width : height
+            property real offset: 0
 
-            property real yOffset: height
+            x: launcher.cfg.position === "left" ? offset - width
+             : launcher.cfg.position === "right" ? parent.width - offset
+             : (parent.width - width) / 2
+            y: launcher.cfg.position === "top" ? offset - height
+             : launcher.cfg.position === "bottom" ? parent.height - offset
+             : (parent.height - height) / 2
 
             clip: true
 
+            // Выходит за край экрана, чтобы скругление было только у свободных углов
             Rectangle {
-                width: parent.width
-                height: parent.height + 16
+                anchors.fill: parent
+                anchors.topMargin: launcher.cfg.position === "top" ? -16 : 0
+                anchors.bottomMargin: launcher.cfg.position === "bottom" ? -16 : 0
+                anchors.leftMargin: launcher.cfg.position === "left" ? -16 : 0
+                anchors.rightMargin: launcher.cfg.position === "right" ? -16 : 0
                 color: Theme.Palette.background
                 radius: Tokens.radius(16)
             }
@@ -303,7 +339,7 @@ PanelWindow {
                             color: Theme.Palette.on_surface_variant
                             font.family: "JetBrains Mono"
                             font.pointSize: 12
-                            text: "Поиск приложений... (> команда, /emoji эмоджи, /web поиск)"
+                            text: launcher.placeholder
                             visible: !searchField.text && !searchField.activeFocus
                         }
 
@@ -360,6 +396,49 @@ PanelWindow {
                         onClicked: {
                             searchField.text = "";
                             searchField.forceActiveFocus();
+                        }
+                    }
+                }
+
+                // Кнопки пользовательских тегов
+                QQ.Flow {
+                    Layout.fillWidth: true
+                    visible: launcher.cfg.showTagButtons && launcher.cfg.tags.length > 0
+                    spacing: 6
+
+                    Repeater {
+                        model: launcher.cfg.tags
+
+                        MouseArea {
+                            id: tagButton
+                            required property var modelData
+                            readonly property bool active: launcher.appTagMode && !launcher.tagSuggestMode
+                                && searchField.text.substring(1).split(" ")[0] === modelData.name
+
+                            width: tagButtonText.implicitWidth + 24
+                            height: 28
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: active ? searchField.text = "" : launcher.openAppTag(modelData.name)
+
+                            Rectangle {
+                                anchors.fill: parent
+                                radius: height / 2
+                                color: tagButton.active ? Theme.Palette.secondary_container
+                                     : tagButton.containsPress ? Theme.Palette.surface_container_highest
+                                     : tagButton.containsMouse ? Theme.Palette.surface_container_high
+                                     : Theme.Palette.surface_container
+                                Behavior on color { ColorAnimation { duration: Tokens.animationFast } }
+                            }
+
+                            Text {
+                                id: tagButtonText
+                                anchors.centerIn: parent
+                                text: "#" + tagButton.modelData.name
+                                color: tagButton.active ? Theme.Palette.on_secondary_container : Theme.Palette.on_surface_variant
+                                font.family: "JetBrains Mono"
+                                font.pointSize: 10
+                            }
                         }
                     }
                 }
@@ -547,7 +626,7 @@ PanelWindow {
 
                     function completeCurrent(): void {
                         if (currentIndex >= 0 && currentItem) {
-                            searchField.text = "/" + currentItem.modelData.tag + " ";
+                            searchField.text = currentItem.modelData.prefix + currentItem.modelData.tag + " ";
                             searchField.cursorPosition = searchField.text.length;
                         }
                     }
@@ -584,7 +663,7 @@ PanelWindow {
                                     font.family: "JetBrains Mono"
                                     font.pointSize: 11
                                     font.bold: true
-                                    text: "/" + tagDelegate.modelData.tag
+                                    text: tagDelegate.modelData.prefix + tagDelegate.modelData.tag
                                 }
 
                                 Text {
@@ -708,17 +787,40 @@ PanelWindow {
                     model: {
                         if (launcher.commandMode || launcher.emojiMode || launcher.webMode) return [];
                         var query = searchField.text.toLowerCase();
+                        // "#тег запрос": только программы тега, включая скрытые
+                        var tagApps = null;
+                        if (launcher.appTagMode) {
+                            var rest = query.substring(1);
+                            var sp = rest.indexOf(" ");
+                            var tagName = sp === -1 ? rest : rest.substring(0, sp);
+                            query = sp === -1 ? "" : rest.substring(sp + 1).trim();
+                            var tag = launcher.cfg.tags.find(t => t.name === tagName);
+                            tagApps = tag ? Array.from(tag.apps) : [];
+                        }
                         var result = [];
+                        var hidden = launcher.cfg.hiddenApps;
+                        var pinned = launcher.cfg.pinnedApps;
                         var entries = DesktopEntries.applications.values;
                         for (var i = 0; i < entries.length; i++) {
                             var e = entries[i];
+                            if (!tagApps && hidden.includes(e.id)) continue;
+                            if (tagApps && !tagApps.includes(e.id)) continue;
                             if (query === "" ||
                                 e.name.toLowerCase().indexOf(query) !== -1 ||
                                 (e.comment && e.comment.toLowerCase().indexOf(query) !== -1)) {
                                 result.push(e);
                             }
                         }
-                        result.sort(function(a, b) { return a.name.localeCompare(b.name); });
+                        // Закреплённые — в начале, в порядке закрепления
+                        result.sort(function(a, b) {
+                            var pa = pinned.indexOf(a.id), pb = pinned.indexOf(b.id);
+                            if (pa !== pb) {
+                                if (pa === -1) return 1;
+                                if (pb === -1) return -1;
+                                return pa - pb;
+                            }
+                            return a.name.localeCompare(b.name);
+                        });
                         return result;
                     }
 
@@ -747,18 +849,13 @@ PanelWindow {
                                 anchors.rightMargin: 12
                                 spacing: 12
 
-                                Image {
-                                    Layout.preferredWidth: 28
-                                    Layout.preferredHeight: 28
-                                    property string iconName: entry.icon || ""
-                                    source: iconName ? ("image://icon/" + iconName.replace(/\.(png|svg|xpm|ico)$/i, "")) : ""
-                                    sourceSize: Qt.size(28, 28)
-                                    fillMode: Image.PreserveAspectFit
-                                    visible: iconName && status === Image.Ready
-                                    asynchronous: true
-                                    cache: true
-                                    mipmap: true
-                                    
+                                Components.AppIcon {
+                                    size: 28
+                                    icon: entry.icon || ""
+                                    name: entry.name
+                                    letterFallback: launcher.cfg.letterIcons
+                                    visible: launcher.cfg.showIcons && (!missing || letterFallback)
+
                                     // Просто делаем иконку ярче при выделении
                                     opacity: delegateItem.ListView.isCurrentItem ? 1.0 : 0.7
                                 }
@@ -787,7 +884,7 @@ PanelWindow {
                                         font.family: "JetBrains Mono"
                                         font.pointSize: 9
                                         elide: Text.ElideRight
-                                        visible: text !== ""
+                                        visible: launcher.cfg.showDescriptions && text !== ""
                                     }
                                 }
                             }
@@ -837,7 +934,7 @@ PanelWindow {
             NumberAnimation {
                 id: slideAnim
                 target: panel
-                property: "yOffset"
+                property: "offset"
                 duration: 250
                 easing.type: Easing.OutCubic
             }

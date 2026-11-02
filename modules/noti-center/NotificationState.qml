@@ -73,7 +73,9 @@ Scope {
             n.tracked = true;
             root.adopt(n);
             // Звук: root.cfg.sound — пока заглушка.
-            if (root.dnd || root.centerOpen)
+            // Напоминания (ReminderState.appName) по настройке всплывают и в «Не беспокоить»
+            const reminder = n.appName === "Напоминание" && root.cfg.remindersIgnoreDnd;
+            if ((root.dnd && !reminder) || root.centerOpen)
                 return;
             root.removePopup(n.id);
             root.popups.insert(0, { nid: n.id });

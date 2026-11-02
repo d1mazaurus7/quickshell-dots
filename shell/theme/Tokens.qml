@@ -39,6 +39,11 @@ QtObject {
         return Math.round(base * appearance.radiusScale);
     }
 
+    // Непрозрачность фона окон с размытием под ними
+    readonly property real surfaceOpacity: appearance.surfaceOpacity
+    // Запрашивать ли размытие у компositора
+    readonly property bool blurEnabled: appearance.blur > 0
+
     // Обводка
     readonly property int borderWidth: appearance.borders ? 1 : 0
 

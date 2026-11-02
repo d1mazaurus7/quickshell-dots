@@ -3,9 +3,10 @@ import Quickshell
 import "../../theme" as Theme
 import "../../shell/theme"
 import "../../shell/config"
+import "../../settings/controls"
 
 // Панель под выделенной областью:
-// [скачать] [копировать] (снимок) [кисть] [ластик] [размытие]
+// [скачать] [копировать] (снимок) [кисть] [ластик] [размытие] [слайдеры инструмента]
 Rectangle {
     id: root
 
@@ -13,11 +14,21 @@ Rectangle {
     property string tool: ""
     // Показывать кисть, ластик и размытие
     property bool editTools: true
+    // Толщина кисти: слайдер виден, пока выбрана кисть
+    property int brushSize: 4
+    // Толщина и сила размытия: слайдеры видны, пока выбрано размытие
+    property int blurSize: 32
+    property real blurStrength: 1
+    property bool pixelate: false
 
     signal toolSelected(string name)
     signal saveRequested()
     signal copyRequested()
     signal captureRequested()
+    signal brushSizeMoved(int size)
+    signal blurSizeMoved(int size)
+    signal blurStrengthMoved(real strength)
+    signal pixelateToggled()
 
     readonly property int buttonSize: Tokens.scaled(36)
     readonly property int captureSize: Tokens.scaled(44)
@@ -106,6 +117,78 @@ Rectangle {
             visible: root.editTools
             checked: root.tool === "blur"
             onClicked: root.toolSelected("blur")
+        }
+
+        Text {
+            anchors.verticalCenter: parent.verticalCenter
+            visible: root.editTools && root.tool === "brush"
+            leftPadding: Tokens.spacingSmall
+            text: "line_weight"
+            font.family: "Material Symbols Rounded"
+            font.pixelSize: Tokens.scaled(20)
+            color: Theme.Palette.on_surface_variant
+        }
+        SettingSlider {
+            anchors.verticalCenter: parent.verticalCenter
+            visible: root.editTools && root.tool === "brush"
+            from: 1
+            to: 16
+            stepSize: 1
+            value: root.brushSize
+            sliderWidth: Tokens.scaled(120)
+            formatValue: v => Math.round(v)
+            onDragged: v => root.brushSizeMoved(Math.round(v))
+            onMoved: v => root.brushSizeMoved(Math.round(v))
+        }
+
+        Text {
+            anchors.verticalCenter: parent.verticalCenter
+            visible: root.editTools && root.tool === "blur"
+            leftPadding: Tokens.spacingSmall
+            text: "line_weight"
+            font.family: "Material Symbols Rounded"
+            font.pixelSize: Tokens.scaled(20)
+            color: Theme.Palette.on_surface_variant
+        }
+        SettingSlider {
+            anchors.verticalCenter: parent.verticalCenter
+            visible: root.editTools && root.tool === "blur"
+            from: 8
+            to: 64
+            stepSize: 4
+            value: root.blurSize
+            sliderWidth: Tokens.scaled(100)
+            formatValue: v => Math.round(v)
+            onDragged: v => root.blurSizeMoved(Math.round(v))
+            onMoved: v => root.blurSizeMoved(Math.round(v))
+        }
+        Text {
+            anchors.verticalCenter: parent.verticalCenter
+            visible: root.editTools && root.tool === "blur"
+            leftPadding: Tokens.spacingSmall
+            text: "blur_medium"
+            font.family: "Material Symbols Rounded"
+            font.pixelSize: Tokens.scaled(20)
+            color: Theme.Palette.on_surface_variant
+        }
+        SettingSlider {
+            anchors.verticalCenter: parent.verticalCenter
+            visible: root.editTools && root.tool === "blur"
+            from: 0.1
+            to: 1
+            stepSize: 0.1
+            value: root.blurStrength
+            sliderWidth: Tokens.scaled(100)
+            formatValue: v => Math.round(v * 100) + "%"
+            onDragged: v => root.blurStrengthMoved(v)
+            onMoved: v => root.blurStrengthMoved(v)
+        }
+        // Пикселизация размытия
+        ToolButton {
+            icon: "grid_on"
+            visible: root.editTools && root.tool === "blur"
+            checked: root.pixelate
+            onClicked: root.pixelateToggled()
         }
     }
 

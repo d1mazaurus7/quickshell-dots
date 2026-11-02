@@ -18,16 +18,19 @@
 |--------------|--------------------------------------------------------|
 | `appearance` | `scale`, `spacingHorizontal`, `spacingVertical`, `radiusScale`, `animationScale` (real), `borders` (bool) |
 | `typography` | `family` (string), `size` (int, базовый px)            |
-| `snow`       | `enabled`, `sweep`, `hideGroundWithTiled`, `windowDrifts` (bool), `intensity`, `speed`, `capRounding`, `shakeOff` (real), `driftHeight`, `windowDriftHeight` (int, лог. px) |
+| `snow`       | `enabled`, `sweep`, `hideGroundWithTiled`, `windowDrifts`, `infiniteDrifts`, `wind` (bool), `intensity`, `speed`, `capRounding`, `shakeOff` (real), `sweepLifetime` (real, с), `sweepAmount` (real, множитель комьев расчистки), `bounceAmount` (real, 0..1 — доля отскока, > 1 — брызги), `windStrength` (real, -3..3, < 0 — влево), `driftHeight`, `windowDriftHeight` (int, лог. px) |
 | `bar`        | `left`, `center`, `right` (list<string>, id модулей из `shell/bar/BarModules.qml` по порядку; модуля нет ни в одном блоке — он скрыт). Менять только присваиванием нового массива; `style` (string: `attached` / `full` / `floating` / `modular`), `floatingMarginTop`, `floatingMarginSide` (int, лог. px), `autoHide` (bool), `autoHideDelay` (int, мс) |
 | `time`       | `showSeconds`, `showDate`, `showWeekday`, `shortWeekday` (bool) |
 | `stopwatch`  | `side` (string: `right` / `left`), `barWidget`, `blinkIcon` (bool), `icon` (string) |
 | `musicPlayer` | `cava`, `coverBackground`, `backgroundBlur`, `wavyTimeline`, `showArtist`, `equalizer` (bool), `timelineStyle` (string: `wave` / `material`), `danceGif` (string, имя файла из `assets/gifs/dance`, `""` — нет), `danceGifEnabled`, `lyrics`, `lyricsScroll`, `lyricsSeek` (bool), `lyricsFontSize` (int, px), `lyricsAlign` (string: `left` / `center` / `right`) |
 | `workspaces` | `showNumbers`, `hideEmpty` (bool), `style` (string: `circles` / `squares`) |
-| `notiCenter` | `popupSide` (string: `right` / `left`), `sound` (bool, заглушка), `swipe` (bool), `swipeDirection` (string: `both` / `right` / `left`), `width`, `bodyLines` (int), `heightRatio` (real 0.4..1), `showClock`, `showSeconds`, `showDate`, `showWeekday`, `showWifi`, `showBluetooth`, `showDnd`, `showBrightness`, `showVolume`, `showActions`, `uiSounds` (bool) |
+| `notiCenter` | `popupSide` (string: `right` / `left`), `sound` (bool, заглушка), `swipe` (bool), `swipeDirection` (string: `both` / `right` / `left`), `width`, `bodyLines` (int), `heightRatio` (real 0.4..1), `showClock`, `showSeconds`, `showDate`, `showWeekday`, `showWifi`, `showBluetooth`, `showDnd`, `showBrightness`, `showVolume`, `showActions`, `uiSounds`, `showCalendar` (bool), `calendarArrows` (string: `right` / `left`), `reminders`, `remindersIgnoreDnd`, `reminderRequireStop` (bool), `reminderInterval` (int, с), `reminderSound` (string, имя файла из `assets/sounds/notes`, `""` — нет) |
 | `sound`      | `typeSound`, `clickSound`, `notificationSound`, `osdSound` (string, имя файла из `assets/sounds`), `mixer`, `mixerOutputs`, `mixerInputs`, `mixerRestart` (bool) |
 | `screenshot` | `notify`, `editTools`, `instant`, `sound` (bool), `soundFile` (string, имя файла из `assets/sounds/screenshot`) |
+| `powerMenu`  | `holdTime` (int, мс), `showPoweroff`, `showReboot`, `showSleep`, `showExit`, `labels` (bool), `width`, `height` (int, лог. px) |
+| `launcher`   | `position` (string: `top` / `bottom` / `left` / `right`), `showIcons`, `showDescriptions`, `letterIcons` (bool), `pinnedApps`, `hiddenApps` (list<string>, id desktop-файлов; менять присваиванием), `tags` (var: `[{ name, apps }]`, теги для поиска `#тег`; менять присваиванием), `showTagButtons` (bool), `commandShell`, `commandEmoji`, `commandWeb` (bool) |
 | `assistant`  | `name`, `description`, `systemPrompt`, `apiKey`, `model` (string), `avatar` (string, имя файла из `assets/img/avatars`, `""` — нет), `temperature` (real), `maxTokens` (int), `side` (string: `left` / `right`), `width`, `fontSize` (int), `heightRatio` (real 0.4..1), `clearCommand`, `reloadCommand`, `loadCommand` (string) |
+| `wallpaper`  | `password` (string, пароль секретных обоев, `""` — вход закрыт) |
 
 ## Правила
 

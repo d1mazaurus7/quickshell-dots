@@ -28,7 +28,12 @@ PanelWindow {
     property real selH: 0
     property real startX: 0
     property real startY: 0
+    // Прошлая область: восстанавливается, если новое выделение слишком мало
+    property rect prevSel: Qt.rect(0, 0, 0, 0)
     readonly property bool hasSelection: selW > 0 && selH > 0
+    // Номера штрихов по порядку — Ctrl+Z убирает последний
+    property int strokeId: 0
+    property var strokes: []
 
     Connections {
         target: root.cfg
@@ -39,9 +44,18 @@ PanelWindow {
     }
 
     readonly property int minSelection: Tokens.scaled(8)
-    readonly property int brushWidth: Tokens.scaled(4)
+    // Толщина кисти до масштабирования, регулируется слайдером панели
+    property int brushSize: 4
+    readonly property int brushWidth: Tokens.scaled(brushSize)
     readonly property int eraserWidth: Tokens.scaled(24)
-    readonly property int blurWidth: Tokens.scaled(32)
+    // Толщина кисти размытия до масштабирования и сила размытия (0..1)
+    property int blurSize: 32
+    property real blurStrength: 1
+    // Пикселизация вместо размытия; сила задаёт размер пикселя.
+    // Не сбрасывается между снимками
+    property bool pixelate: false
+    readonly property int pixelSize: Tokens.scaled(Math.round(6 + blurStrength * 26))
+    readonly property int blurWidth: Tokens.scaled(blurSize)
 
     visible: service.active
     color: "transparent"
@@ -66,6 +80,18 @@ PanelWindow {
         onActivated: root.service.requestClose()
     }
 
+    Shortcut {
+        sequence: "Ctrl+Z"
+        enabled: root.service.active && !root.busy
+        onActivated: root.undo()
+    }
+
+    Shortcut {
+        sequence: "Space"
+        enabled: root.service.active && root.phase === "edit" && !root.dragging
+        onActivated: root.capture(true, true)
+    }
+
     // Окно, ещё не получившее кадр, закрывается сразу — анимировать нечего
     Connections {
         target: root.service
@@ -81,6 +107,10 @@ PanelWindow {
             root.tool = "";
             root.dragging = false;
             root.busy = false;
+            root.brushSize = 4;
+            root.blurSize = 32;
+            root.blurStrength = 1;
+            root.strokes = [];
             root.selW = 0;
             root.selH = 0;
         }
@@ -91,13 +121,27 @@ PanelWindow {
         if (!frame)
             return;
         if (tool === "brush") {
-            frame.paintCanvas.addSegment(x0, y0, x1, y1, brushWidth, Theme.Palette.primary, false);
+            frame.paintCanvas.addSegment(x0, y0, x1, y1, brushWidth, Theme.Palette.primary, false, strokeId);
         } else if (tool === "blur") {
-            frame.blurMask.addSegment(x0, y0, x1, y1, blurWidth, "black", false);
+            frame.blurMask.addSegment(x0, y0, x1, y1, blurWidth, "black", false, strokeId);
         } else if (tool === "eraser") {
-            frame.paintCanvas.addSegment(x0, y0, x1, y1, eraserWidth, "black", true);
-            frame.blurMask.addSegment(x0, y0, x1, y1, eraserWidth, "black", true);
+            frame.paintCanvas.addSegment(x0, y0, x1, y1, eraserWidth, "black", true, strokeId);
+            frame.blurMask.addSegment(x0, y0, x1, y1, eraserWidth, "black", true, strokeId);
         }
+    }
+
+    // Новый штрих начинается с нажатия
+    function beginStroke(): void {
+        strokeId++;
+        strokes.push(strokeId);
+    }
+
+    function undo(): void {
+        if (!frame || strokes.length === 0)
+            return;
+        const id = strokes.pop();
+        frame.paintCanvas.removeStroke(id);
+        frame.blurMask.removeStroke(id);
     }
 
     // Рендер выделенной области в PNG с учётом масштаба экрана
@@ -152,13 +196,25 @@ PanelWindow {
                     asynchronous: true
                 }
 
-                // Размытая копия кадра, видимая только там, где прошлась кисть размытия
+                // Кадр в низком разрешении без сглаживания — крупные пиксели
+                ShaderEffectSource {
+                    id: pixelView
+                    anchors.fill: parent
+                    visible: false
+                    sourceItem: shotView
+                    smooth: false
+                    textureSize: Qt.size(Math.max(1, Math.ceil(width / root.pixelSize)),
+                                         Math.max(1, Math.ceil(height / root.pixelSize)))
+                }
+
+                // Размытая (или пикселизированная) копия кадра, видимая только там,
+                // где прошлась кисть размытия
                 MultiEffect {
                     anchors.fill: parent
-                    source: shotView
+                    source: root.pixelate ? pixelView : shotView
                     autoPaddingEnabled: false
-                    blurEnabled: true
-                    blur: 1.0
+                    blurEnabled: !root.pixelate
+                    blur: root.blurStrength
                     blurMax: 64
                     maskEnabled: true
                     maskSource: blurLayer
@@ -167,6 +223,7 @@ PanelWindow {
                 StrokeCanvas {
                     id: blurLayer
                     anchors.fill: parent
+                    clipRect: Qt.rect(root.selX, root.selY, root.selW, root.selH)
                     visible: false
                     layer.enabled: true
                 }
@@ -174,6 +231,7 @@ PanelWindow {
                 StrokeCanvas {
                     id: paintLayer
                     anchors.fill: parent
+                    clipRect: Qt.rect(root.selX, root.selY, root.selW, root.selH)
                 }
             }
         }
@@ -242,13 +300,17 @@ PanelWindow {
             id: mouse
             anchors.fill: parent
             enabled: !root.busy && !root.service.closing
-            cursorShape: root.phase === "select" || root.tool !== "" ? Qt.CrossCursor : Qt.ArrowCursor
+            cursorShape: Qt.CrossCursor
 
             property real lastX: 0
             property real lastY: 0
 
             onPressed: event => {
-                if (root.phase === "select") {
+                // Без инструмента нажатие начинает новое выделение
+                if (root.phase === "select" || root.tool === "") {
+                    root.prevSel = root.phase === "edit" ? Qt.rect(root.selX, root.selY, root.selW, root.selH)
+                                                         : Qt.rect(0, 0, 0, 0);
+                    root.phase = "select";
                     root.dragging = true;
                     root.startX = event.x;
                     root.startY = event.y;
@@ -259,6 +321,7 @@ PanelWindow {
                 } else if (root.tool !== "") {
                     lastX = event.x;
                     lastY = event.y;
+                    root.beginStroke();
                     root.stroke(event.x, event.y, event.x, event.y);
                 }
             }
@@ -286,6 +349,12 @@ PanelWindow {
                     root.phase = "edit";
                     if (root.cfg.instant)
                         root.capture(true, true);
+                } else if (root.prevSel.width > 0) {
+                    root.selX = root.prevSel.x;
+                    root.selY = root.prevSel.y;
+                    root.selW = root.prevSel.width;
+                    root.selH = root.prevSel.height;
+                    root.phase = "edit";
                 } else {
                     root.selW = 0;
                     root.selH = 0;
@@ -326,6 +395,14 @@ PanelWindow {
              : root.selY + root.selH - gap - height
 
             tool: root.tool
+            brushSize: root.brushSize
+            onBrushSizeMoved: size => root.brushSize = size
+            blurSize: root.blurSize
+            blurStrength: root.blurStrength
+            onBlurSizeMoved: size => root.blurSize = size
+            onBlurStrengthMoved: strength => root.blurStrength = strength
+            pixelate: root.pixelate
+            onPixelateToggled: root.pixelate = !root.pixelate
             editTools: root.cfg.editTools
             enabled: !root.busy
             opacity: root.phase === "edit" && !root.cfg.instant ? 1 : 0

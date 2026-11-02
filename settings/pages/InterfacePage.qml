@@ -107,12 +107,14 @@ ColumnLayout {
     }
 
     SettingRow {
+        shown: page.snow.enabled
+        child: true
         title: "Интенсивность"
         description: "Количество снежинок и скорость накопления"
 
         SettingSlider {
             from: 0.2
-            to: 2
+            to: 10
             stepSize: 0.1
             value: page.snow.intensity
             formatValue: v => Math.round(v * 100) + "%"
@@ -121,12 +123,14 @@ ColumnLayout {
     }
 
     SettingRow {
+        shown: page.snow.enabled
+        child: true
         title: "Скорость"
         description: "Скорость падения снежинок"
 
         SettingSlider {
             from: 0.3
-            to: 3
+            to: 8
             stepSize: 0.1
             value: page.snow.speed
             formatValue: v => Math.round(v * 100) + "%"
@@ -135,6 +139,52 @@ ColumnLayout {
     }
 
     SettingRow {
+        shown: page.snow.enabled
+        depth: 2
+        title: "Отскок"
+        description: "При скорости от 340%: до 100% — доля отскакивающих снежинок, выше — брызги от каждого удара"
+
+        SettingSlider {
+            from: 0
+            to: 10
+            stepSize: 0.1
+            value: page.snow.bounceAmount
+            formatValue: v => Math.round(v * 100) + "%"
+            onMoved: value => page.snow.bounceAmount = value
+        }
+    }
+
+    SettingRow {
+        shown: page.snow.enabled
+        child: true
+        title: "Ветер"
+        description: "Ветер сносит снежинки, и снег идёт наискосок"
+
+        SettingSwitch {
+            checked: page.snow.wind
+            onToggled: checked => page.snow.wind = checked
+        }
+    }
+
+    SettingRow {
+        shown: page.snow.enabled && page.snow.wind
+        depth: 2
+        title: "Сила ветра"
+        description: "Влево — отрицательные значения, вправо — положительные"
+
+        SettingSlider {
+            from: -3
+            to: 3
+            stepSize: 0.1
+            value: page.snow.windStrength
+            formatValue: v => (v < 0 ? "← " : v > 0 ? "→ " : "") + Math.round(Math.abs(v) * 100) + "%"
+            onMoved: value => page.snow.windStrength = value
+        }
+    }
+
+    SettingRow {
+        shown: page.snow.enabled
+        child: true
         title: "Высота сугроба"
         description: "Максимальная высота сугроба"
 
@@ -149,6 +199,20 @@ ColumnLayout {
     }
 
     SettingRow {
+        shown: page.snow.enabled
+        child: true
+        title: "Бесконечные сугробы"
+        description: "Сугробы внизу экрана и на окнах растут без предела, до верха экрана"
+
+        SettingSwitch {
+            checked: page.snow.infiniteDrifts
+            onToggled: checked => page.snow.infiniteDrifts = checked
+        }
+    }
+
+    SettingRow {
+        shown: page.snow.enabled
+        child: true
         title: "Прятать сугроб под окнами"
         description: "Скрывать нижний сугроб, когда на экране только тайловые окна"
 
@@ -159,6 +223,8 @@ ColumnLayout {
     }
 
     SettingRow {
+        shown: page.snow.enabled
+        child: true
         title: "Снег на окнах"
         description: "Снежные шапки на плавающих окнах"
 
@@ -169,6 +235,8 @@ ColumnLayout {
     }
 
     SettingRow {
+        shown: page.snow.enabled && page.snow.windowDrifts
+        depth: 2
         title: "Высота шапки"
         description: "Максимальная высота снега на окнах"
 
@@ -183,6 +251,8 @@ ColumnLayout {
     }
 
     SettingRow {
+        shown: page.snow.enabled && page.snow.windowDrifts
+        depth: 2
         title: "Скругление шапки"
         description: "Насколько плавно снег спадает к краям окна"
 
@@ -197,6 +267,8 @@ ColumnLayout {
     }
 
     SettingRow {
+        shown: page.snow.enabled && page.snow.windowDrifts
+        depth: 2
         title: "Стряхивание"
         description: "Сколько снега падает с окна при перемещении"
 
@@ -211,12 +283,46 @@ ColumnLayout {
     }
 
     SettingRow {
+        shown: page.snow.enabled
+        child: true
         title: "Расчистка"
         description: "Расчищать сугроб зажатой левой кнопкой мыши"
 
         SettingSwitch {
             checked: page.snow.sweep
             onToggled: checked => page.snow.sweep = checked
+        }
+    }
+
+    SettingRow {
+        shown: page.snow.enabled && page.snow.sweep
+        depth: 2
+        title: "Время жизни расчищенного снега"
+        description: "Сколько лежат разлетевшиеся комья снега, прежде чем растаять"
+
+        SettingSlider {
+            from: 0.5
+            to: 10
+            stepSize: 0.5
+            value: page.snow.sweepLifetime
+            formatValue: v => v.toFixed(1) + " с"
+            onMoved: value => page.snow.sweepLifetime = value
+        }
+    }
+
+    SettingRow {
+        shown: page.snow.enabled && page.snow.sweep
+        depth: 2
+        title: "Количество снега"
+        description: "Сколько комьев разлетается при расчистке. Большие значения нагружают процессор"
+
+        SettingSlider {
+            from: 0.1
+            to: 10
+            stepSize: 0.1
+            value: page.snow.sweepAmount
+            formatValue: v => Math.round(v * 100) + "%"
+            onMoved: value => page.snow.sweepAmount = value
         }
     }
 }

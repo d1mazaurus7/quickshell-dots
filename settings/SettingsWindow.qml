@@ -29,7 +29,11 @@ PanelWindow {
         { title: "Центр уведомлений", page: notiCenterPage },
         { title: "Скриншоты", page: screenshotPage },
         { title: "Ассистент", page: assistantPage },
+        { title: "Управление питанием", page: powerMenuPage },
+        { title: "Лаунчер", page: launcherPage },
+        { title: "Обои", page: wallpaperPage },
         { title: "Оболочка", page: shellPage },
+        { title: "NixOS", page: nixosPage },
         { title: "О системе", page: aboutPage }
     ]
     readonly property var filteredSections: sections.filter(s =>
@@ -76,8 +80,16 @@ PanelWindow {
     Component { id: notiCenterPage; Pages.NotiCenterPage {} }
     Component { id: screenshotPage; Pages.ScreenshotPage {} }
     Component { id: assistantPage; Pages.AssistantPage {} }
+    Component { id: powerMenuPage; Pages.PowerMenuPage {} }
+    Component { id: launcherPage; Pages.LauncherPage {} }
+    Component { id: wallpaperPage; Pages.WallpaperPage {} }
     Component { id: aboutPage; Pages.AboutPage {} }
     Component { id: shellPage; Pages.ShellPage { updater: shellUpdater } }
+    Component { id: nixosPage; Pages.NixosPage { updater: nixosUpdater } }
+
+    NixosUpdater {
+        id: nixosUpdater
+    }
 
     // Обновление оболочки; после установки окно открывается на разделе «Оболочка»
     Updater {
@@ -91,6 +103,8 @@ PanelWindow {
     onOpenChanged: {
         if (!open && shellUpdater.status === "installed")
             shellUpdater.status = "idle";
+        if (!open && nixosUpdater.status === "installed")
+            nixosUpdater.status = "idle";
     }
 
     Shortcut {

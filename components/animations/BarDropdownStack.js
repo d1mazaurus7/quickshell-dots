@@ -20,3 +20,15 @@ function remove(dropdown) {
 function top() {
     return stack.length > 0 ? stack[stack.length - 1] : null;
 }
+
+// Закрыть все открытые окна (например, перед оверлеем скриншота:
+// popup с захватом ввода перехватывает указатель)
+function dismissAll() {
+    const all = stack.slice();
+    for (let i = all.length - 1; i >= 0; i--) {
+        if (all[i].open) {
+            all[i].dismissedAt = Date.now();
+            all[i].dismissed();
+        }
+    }
+}

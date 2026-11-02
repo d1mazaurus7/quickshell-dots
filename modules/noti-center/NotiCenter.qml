@@ -164,8 +164,18 @@ Item {
         precision: SystemClock.Seconds
     }
 
-    // Внутренняя страница (заглушка): "", "wifi" или "bluetooth".
+    // Внутренняя страница (заглушка): "", "wifi", "bluetooth" или "note".
     property string page: ""
+    // Дата открытой заметки календаря
+    property date noteDate: new Date()
+
+    NotesState { id: noteStore }
+    ReminderState {
+        id: reminderStore
+        // Уведомления отправляет один экземпляр
+        scheduler: root.ipcEnabled
+        dnd: root.notifications.dnd
+    }
 
     // ---- Окно ----
 
@@ -348,7 +358,7 @@ Item {
                 anchors.topMargin: quickHeight + 20 * root.s
                 anchors.left: parent.left
                 anchors.right: parent.right
-                anchors.bottom: parent.bottom
+                anchors.bottom: calendarSlot.top
 
                 readonly property int count: root.notifications.history.count
                 readonly property var swipeGroup: QtObject {
@@ -444,6 +454,46 @@ Item {
                 }
             }
 
+            // Календарь под уведомлениями: при выключении плавно сворачивается
+            Item {
+                id: calendarSlot
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                height: root.cfg.showCalendar ? calendar.implicitHeight + 16 * root.s : 0
+                opacity: root.cfg.showCalendar ? 1 : 0
+                visible: height > 0
+                clip: true
+                Behavior on height { NumberAnimation { duration: Tokens.animationMedium; easing.type: Easing.OutCubic } }
+                Behavior on opacity { NumberAnimation { duration: Tokens.animationMedium; easing.type: Easing.OutCubic } }
+
+                Calendar {
+                    id: calendar
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    s: root.s
+                    today: clock.date
+                    arrowsSide: root.cfg.calendarArrows
+                    notes: noteStore.notes
+                    onStepped: root.play("click")
+                    onDayClicked: date => {
+                        root.play("click");
+                        root.noteDate = date;
+                        root.page = "note";
+                    }
+
+                    // При закрытии панели возвращаемся к текущему месяцу
+                    Connections {
+                        target: root
+                        function onOpenChanged() {
+                            if (!root.open)
+                                calendar.offset = 0;
+                        }
+                    }
+                }
+            }
+
             // Заглушка внутреннего окна Wi-Fi / Bluetooth
             Rectangle {
                 id: subPage
@@ -498,13 +548,20 @@ Item {
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onPressed: root.play("click")
-                            onClicked: root.page = ""
+                            onClicked: {
+                                if (subPage.shown === "note")
+                                    notePage.back();
+                                else
+                                    root.page = "";
+                            }
                         }
                     }
 
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: subPage.shown === "wifi" ? "Wi-Fi" : "Bluetooth"
+                        text: subPage.shown === "wifi" ? "Wi-Fi"
+                            : subPage.shown === "note" ? root.noteDate.toLocaleDateString(Qt.locale(), "d MMMM yyyy")
+                            : "Bluetooth"
                         color: Theme.Palette.on_surface
                         font.family: "JetBrainsMono Nerd Font"
                         font.pixelSize: Math.round(18 * root.s)
@@ -666,6 +723,421 @@ Item {
                         enabled: root.btOn
                         labels: [root.btAdapter && root.btAdapter.discovering ? "Остановить поиск" : "Обновить"]
                         onActivated: root.btAdapter.discovering = !root.btAdapter.discovering
+                    }
+                }
+                // День календаря: выбор (напоминание / заметка), затем экран выбранного.
+                // Экраны (ModePane) сменяются плавно: прозрачность и небольшой сдвиг.
+                Item {
+                    id: notePage
+                    anchors.top: subHeader.bottom
+                    anchors.topMargin: 16 * root.s
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    visible: subPage.shown === "note"
+
+                    readonly property var note: noteStore.notes[noteStore.key(root.noteDate)] ?? null
+                    readonly property var dayReminders: reminderStore.forDay(root.noteDate)
+                    // "menu" | "view" | "edit" | "reminder" (текст) | "time" (время напоминания)
+                    property string mode: "menu"
+                    readonly property bool editing: mode === "edit"
+
+                    function remind(): void {
+                        reminderEditor.text = "";
+                        mode = "reminder";
+                        reminderEditor.forceActiveFocus();
+                    }
+
+                    // Барабаны прокручиваются к текущему времени
+                    function pickTime(): void {
+                        reminderEditor.focus = false;
+                        const now = new Date();
+                        hourDrum.value = now.getHours();
+                        minuteDrum.value = now.getMinutes();
+                        secondDrum.value = 0;
+                        mode = "time";
+                    }
+
+                    function dueDate(): date {
+                        return new Date(root.noteDate.getFullYear(), root.noteDate.getMonth(), root.noteDate.getDate(),
+                            hourDrum.value, minuteDrum.value, secondDrum.value);
+                    }
+
+                    function edit(): void {
+                        editor.text = note ? note.text : "";
+                        mode = "edit";
+                        editor.cursorPosition = editor.length;
+                        editor.forceActiveFocus();
+                    }
+
+                    function openNote(): void {
+                        if (note)
+                            mode = "view";
+                        else
+                            edit();
+                    }
+
+                    // Шаг назад внутри страницы; из меню — закрыть страницу
+                    function back(): void {
+                        editor.focus = false;
+                        reminderEditor.focus = false;
+                        if (mode === "menu")
+                            root.page = "";
+                        else if (mode === "time") {
+                            mode = "reminder";
+                            reminderEditor.forceActiveFocus();
+                        } else
+                            mode = "menu";
+                    }
+
+                    Connections {
+                        target: root
+                        function onPageChanged() {
+                            if (root.page === "note")
+                                notePage.mode = "menu";
+                        }
+                    }
+
+                    // Выбор действия для дня
+                    ModePane {
+                        active: notePage.mode === "menu"
+                        s: root.s
+
+                    Column {
+                        width: parent.width
+                        spacing: 10 * root.s
+
+                        Repeater {
+                            model: [
+                                { action: "reminder", icon: "󰂚", title: "Добавить напоминание",
+                                  subtitle: notePage.dayReminders.length > 0
+                                      ? notePage.dayReminders.map(r => Qt.formatTime(new Date(r.due), "HH:mm:ss")).join(", ")
+                                      : "Уведомление в выбранное время" },
+                                { action: "note", icon: "󰏫", title: notePage.note ? "Заметка" : "Добавить заметку",
+                                  subtitle: notePage.note ? "Открыть заметку на этот день" : "Текст на этот день" }
+                            ].filter(c => c.action !== "reminder" || root.cfg.reminders)
+
+                            Rectangle {
+                                id: choice
+                                required property var modelData
+                                width: parent.width
+                                height: 64 * root.s
+                                radius: 16 * root.s
+                                color: choiceArea.pressed ? Theme.Palette.surface_container_highest
+                                    : choiceArea.containsMouse ? Theme.Palette.surface_container_high
+                                    : Theme.Palette.surface_container
+                                Behavior on color { ColorAnimation { duration: Tokens.animationFast } }
+
+                                Rectangle {
+                                    id: choiceIcon
+                                    anchors.left: parent.left
+                                    anchors.leftMargin: 12 * root.s
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: 40 * root.s
+                                    height: width
+                                    radius: 12 * root.s
+                                    color: Theme.Palette.secondary_container
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: choice.modelData.icon
+                                        color: Theme.Palette.on_secondary_container
+                                        font.family: "JetBrainsMono Nerd Font"
+                                        font.pixelSize: Math.round(20 * root.s)
+                                    }
+                                }
+
+                                Column {
+                                    anchors.left: choiceIcon.right
+                                    anchors.leftMargin: 12 * root.s
+                                    anchors.right: parent.right
+                                    anchors.rightMargin: 12 * root.s
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    spacing: 2 * root.s
+
+                                    Text {
+                                        width: parent.width
+                                        elide: Text.ElideRight
+                                        text: choice.modelData.title
+                                        color: Theme.Palette.on_surface
+                                        font.family: "JetBrainsMono Nerd Font"
+                                        font.pixelSize: Math.round(14 * root.s)
+                                    }
+                                    Text {
+                                        width: parent.width
+                                        elide: Text.ElideRight
+                                        text: choice.modelData.subtitle
+                                        color: Theme.Palette.on_surface_variant
+                                        font.family: "JetBrainsMono Nerd Font"
+                                        font.pixelSize: Math.round(11 * root.s)
+                                    }
+                                }
+
+                                MouseArea {
+                                    id: choiceArea
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onPressed: root.play("click")
+                                    onClicked: {
+                                        if (choice.modelData.action === "reminder")
+                                            notePage.remind();
+                                        else
+                                            notePage.openNote();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    }
+
+                    // Напоминание: текст
+                    ModePane {
+                        active: notePage.mode === "reminder"
+                        s: root.s
+
+                        Rectangle {
+                            anchors.top: parent.top
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.bottom: reminderActions.top
+                            anchors.bottomMargin: 12 * root.s
+                            radius: 16 * root.s
+                            color: Theme.Palette.surface_container
+                            border.width: reminderEditor.activeFocus ? 1 : 0
+                            border.color: Theme.Palette.primary
+
+                            Flickable {
+                                id: reminderFlick
+                                anchors.fill: parent
+                                anchors.margins: 14 * root.s
+                                clip: true
+                                contentHeight: reminderEditor.height
+                                boundsBehavior: Flickable.StopAtBounds
+
+                                TextEdit {
+                                    id: reminderEditor
+                                    width: reminderFlick.width
+                                    height: Math.max(implicitHeight, reminderFlick.height)
+                                    wrapMode: TextEdit.Wrap
+                                    color: Theme.Palette.on_surface
+                                    selectionColor: Theme.Palette.primary
+                                    selectedTextColor: Theme.Palette.on_primary
+                                    font.family: "JetBrainsMono Nerd Font"
+                                    font.pixelSize: Math.round(13 * root.s)
+                                    onCursorRectangleChanged: {
+                                        const r = cursorRectangle;
+                                        if (reminderFlick.contentY > r.y)
+                                            reminderFlick.contentY = r.y;
+                                        else if (reminderFlick.contentY + reminderFlick.height < r.y + r.height)
+                                            reminderFlick.contentY = r.y + r.height - reminderFlick.height;
+                                    }
+                                    onTextChanged: if (activeFocus)
+                                        Quickshell.execDetached(["pw-play", Quickshell.shellPath("assets/sounds/" + Config.options.sound.typeSound)])
+
+                                    Text {
+                                        visible: reminderEditor.text === ""
+                                        text: "О чём напомнить"
+                                        color: Theme.Palette.on_surface_variant
+                                        font: reminderEditor.font
+                                    }
+                                }
+                            }
+                        }
+
+                        ActionRow {
+                            id: reminderActions
+                            anchors.right: parent.right
+                            anchors.bottom: parent.bottom
+                            s: root.s
+                            width: 200 * root.s
+                            labels: ["Отмена", "Записать"]
+                            onActivated: index => {
+                                if (index === 1 && reminderEditor.text.trim() !== "")
+                                    notePage.pickTime();
+                                else if (index === 0)
+                                    notePage.back();
+                            }
+                        }
+                    }
+
+                    // Напоминание: время на барабанах
+                    ModePane {
+                        active: notePage.mode === "time"
+                        s: root.s
+
+                        Column {
+                            anchors.centerIn: parent
+                            anchors.verticalCenterOffset: -reminderApply.height
+                            spacing: 18 * root.s
+
+                            Text {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: "Время напоминания"
+                                color: Theme.Palette.on_surface
+                                font.family: "JetBrainsMono Nerd Font"
+                                font.pixelSize: Math.round(16 * root.s)
+                            }
+
+                            Row {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                spacing: 14 * root.s
+
+                                // Щелчок на каждое число; при подстановке времени в pickTime() тихо
+                                TimeDrum { id: hourDrum; s: root.s; count: 24; onTicked: if (notePage.mode === "time") root.play("button") }
+                                TimeDrum { id: minuteDrum; s: root.s; count: 60; onTicked: if (notePage.mode === "time") root.play("button") }
+                                TimeDrum { id: secondDrum; s: root.s; count: 60; onTicked: if (notePage.mode === "time") root.play("button") }
+                            }
+
+                            Text {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                // Привязка к clock.date: отсчёт обновляется каждую секунду
+                                readonly property real secondsLeft: notePage.mode === "time"
+                                    ? Math.ceil((notePage.dueDate() - clock.date) / 1000) : 0
+                                text: {
+                                    if (secondsLeft <= 0)
+                                        return "Время прошло — напомню сразу";
+                                    const parts = [];
+                                    // На сегодня — без дней
+                                    if (root.noteDate.toDateString() !== clock.date.toDateString())
+                                        parts.push(Math.floor(secondsLeft / 86400) + " дн");
+                                    parts.push(Math.floor(secondsLeft % 86400 / 3600) + " ч",
+                                        Math.floor(secondsLeft % 3600 / 60) + " мин",
+                                        secondsLeft % 60 + " сек");
+                                    return "Через " + parts.join(", ");
+                                }
+                                color: Theme.Palette.on_surface_variant
+                                font.family: "JetBrainsMono Nerd Font"
+                                font.pixelSize: Math.round(11 * root.s)
+                            }
+                        }
+
+                        ActionRow {
+                            id: reminderApply
+                            anchors.right: parent.right
+                            anchors.bottom: parent.bottom
+                            s: root.s
+                            width: 200 * root.s
+                            labels: ["Назад", "Применить"]
+                            onActivated: index => {
+                                if (index === 0) {
+                                    notePage.back();
+                                    return;
+                                }
+                                reminderStore.add(notePage.dueDate(), reminderEditor.text.trim());
+                                notePage.mode = "menu";
+                            }
+                        }
+                    }
+
+                    // Заметка: просмотр или редактирование
+                    ModePane {
+                        active: notePage.mode === "view" || notePage.mode === "edit"
+                        s: root.s
+
+                        Rectangle {
+                            anchors.top: parent.top
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.bottom: edited.top
+                            anchors.bottomMargin: 10 * root.s
+                            radius: 16 * root.s
+                            color: Theme.Palette.surface_container
+                            border.width: editor.activeFocus ? 1 : 0
+                            border.color: Theme.Palette.primary
+
+                            Flickable {
+                                id: noteFlick
+                                anchors.fill: parent
+                                anchors.margins: 14 * root.s
+                                clip: true
+                                contentHeight: notePage.editing ? editor.height : viewText.height
+                                boundsBehavior: Flickable.StopAtBounds
+
+                                // Каретка не уходит за видимую область
+                                function ensureVisible(r: rect): void {
+                                    if (contentY > r.y)
+                                        contentY = r.y;
+                                    else if (contentY + height < r.y + r.height)
+                                        contentY = r.y + r.height - height;
+                                }
+
+                                Text {
+                                    id: viewText
+                                    width: noteFlick.width
+                                    visible: !notePage.editing
+                                    text: notePage.note ? notePage.note.text : ""
+                                    wrapMode: Text.Wrap
+                                    color: Theme.Palette.on_surface
+                                    font.family: "JetBrainsMono Nerd Font"
+                                    font.pixelSize: Math.round(13 * root.s)
+                                }
+
+                                TextEdit {
+                                    id: editor
+                                    width: noteFlick.width
+                                    height: Math.max(implicitHeight, noteFlick.height)
+                                    visible: notePage.editing
+                                    wrapMode: TextEdit.Wrap
+                                    color: Theme.Palette.on_surface
+                                    selectionColor: Theme.Palette.primary
+                                    selectedTextColor: Theme.Palette.on_primary
+                                    font.family: "JetBrainsMono Nerd Font"
+                                    font.pixelSize: Math.round(13 * root.s)
+                                    onCursorRectangleChanged: noteFlick.ensureVisible(cursorRectangle)
+                                    // Звук печати только от ввода, не от подстановки текста
+                                    onTextChanged: if (activeFocus)
+                                        Quickshell.execDetached(["pw-play", Quickshell.shellPath("assets/sounds/" + Config.options.sound.typeSound)])
+
+                                    Text {
+                                        visible: editor.text === ""
+                                        text: "Текст заметки"
+                                        color: Theme.Palette.on_surface_variant
+                                        font: editor.font
+                                    }
+                                }
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                visible: !notePage.editing
+                                cursorShape: Qt.IBeamCursor
+                                onDoubleClicked: notePage.edit()
+                            }
+                        }
+
+                        Text {
+                            id: edited
+                            anchors.left: parent.left
+                            anchors.bottom: noteActions.top
+                            anchors.bottomMargin: 12 * root.s
+                            text: notePage.note
+                                ? "Изменено " + new Date(notePage.note.edited).toLocaleString(Qt.locale(), "d MMMM yyyy, HH:mm")
+                                : "Новая заметка"
+                            color: Theme.Palette.on_surface_variant
+                            font.family: "JetBrainsMono Nerd Font"
+                            font.pixelSize: Math.round(11 * root.s)
+                        }
+
+                        ActionRow {
+                            id: noteActions
+                            anchors.right: parent.right
+                            anchors.bottom: parent.bottom
+                            s: root.s
+                            width: (notePage.editing ? 200 : 110) * root.s
+                            labels: notePage.editing ? ["Отмена", "Записать"] : ["Изменить"]
+                            onActivated: index => {
+                                if (!notePage.editing) {
+                                    notePage.edit();
+                                    return;
+                                }
+                                editor.focus = false;
+                                if (index === 1)
+                                    noteStore.save(root.noteDate, editor.text);
+                                // Пустая заметка удалена, новая отменена — назад к выбору
+                                notePage.mode = notePage.note ? "view" : "menu";
+                            }
+                        }
                     }
                 }
             }

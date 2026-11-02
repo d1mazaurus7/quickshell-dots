@@ -43,6 +43,15 @@ ColumnLayout {
         font: Tokens.fontMedium
     }
 
+    // Версия и стабильность из version оболочки
+    Text {
+        Layout.alignment: Qt.AlignHCenter
+        visible: page.updater.version !== ""
+        text: page.updater.stability !== "" ? page.updater.version + " · " + page.updater.stability : page.updater.version
+        color: page.colors.primary
+        font: Tokens.fontMedium
+    }
+
     Item {
         Layout.preferredHeight: Tokens.scaled(72)
     }
@@ -259,5 +268,51 @@ ColumnLayout {
         color: page.colors.error
         font: Tokens.fontMedium
         Behavior on opacity { NumberAnimation { duration: Tokens.animationMedium } }
+    }
+
+    // Список изменений из CHANGELOGS.md оболочки
+    Rectangle {
+        Layout.alignment: Qt.AlignHCenter
+        Layout.fillWidth: true
+        Layout.maximumWidth: Tokens.scaled(560)
+        Layout.topMargin: Tokens.spacingLargeV
+        implicitHeight: Tokens.scaled(320)
+        radius: Tokens.radiusLarge
+        color: page.colors.surface_container
+
+        Text {
+            id: changelogTitle
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.topMargin: Tokens.spacingMediumV
+            anchors.leftMargin: Tokens.spacingLarge
+            text: "Список изменений"
+            color: page.colors.on_surface
+            font.family: Tokens.fontLarge.family
+            font.pixelSize: Tokens.fontLarge.pixelSize
+        }
+
+        Flickable {
+            id: changelogView
+            anchors.fill: parent
+            anchors.topMargin: changelogTitle.height + Tokens.spacingMediumV * 2
+            anchors.leftMargin: Tokens.spacingLarge
+            anchors.rightMargin: Tokens.spacingLarge
+            anchors.bottomMargin: Tokens.spacingMediumV
+            clip: true
+            contentHeight: changelogText.implicitHeight
+            boundsBehavior: Flickable.StopAtBounds
+
+            Text {
+                id: changelogText
+                width: changelogView.width
+                text: page.updater.changelog !== "" ? page.updater.changelog : "Список изменений не найден"
+                textFormat: page.updater.changelog !== "" ? Text.MarkdownText : Text.PlainText
+                wrapMode: Text.Wrap
+                color: page.updater.changelog !== "" ? page.colors.on_surface_variant : page.colors.outline
+                font: Tokens.fontMedium
+                onLinkActivated: link => Qt.openUrlExternally(link)
+            }
+        }
     }
 }

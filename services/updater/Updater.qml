@@ -12,6 +12,11 @@ Item {
     // Метка «обновление только что установлено»: время записи, переживает перезагрузку
     readonly property string marker: Quickshell.statePath("update-installed")
 
+    // Версия оболочки: version — первая строка, вторая — стабильность
+    property string version: ""
+    property string stability: ""
+    property string changelog: ""
+
     // idle | checking | installing | installed | failed
     property string status: "idle"
     readonly property bool busy: status === "checking" || status === "installing"
@@ -53,6 +58,31 @@ Item {
                 'rm -rf "$1/.git" && mkdir -p "$(dirname "$3")" && date +%s > "$3" && cp -a "$1/." "$2/"; rm -rf "$1"',
                 "sh", root.sourceDir, Quickshell.shellDir, root.marker]);
         }
+    }
+
+    FileView {
+        path: Quickshell.shellPath("version")
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        onLoaded: {
+            const lines = text().split("\n");
+            root.version = (lines[0] ?? "").trim();
+            root.stability = (lines[1] ?? "").trim();
+        }
+        onLoadFailed: {
+            root.version = "";
+            root.stability = "";
+        }
+    }
+
+    FileView {
+        path: Quickshell.shellPath("CHANGELOGS.md")
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        onLoaded: root.changelog = text()
+        onLoadFailed: root.changelog = ""
     }
 
     // При старте: свежая метка → показать результат. Удаляется с задержкой,

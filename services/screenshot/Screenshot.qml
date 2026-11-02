@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import "../../shell/config"
+import "../../components/animations/BarDropdownStack.js" as DropdownStack
 
 // Сервис скриншотов: qs ipc call screenshot capture|close
 // Оверлей выделения открывается на мониторе в фокусе Niri.
@@ -19,8 +20,9 @@ Scope {
     // PNG сначала пишется во временный файл, затем копируется/сохраняется
     readonly property string tempPath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/qs-screenshot.png"
     // Замороженный кадр монитора от grim. ScreencopyView на Niri не используется:
-    // его wlr-screencopy роняет Qt Wayland (quickshell#1202)
-    readonly property string framePath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/qs-screenshot-frame.png"
+    // его wlr-screencopy роняет Qt Wayland (quickshell#1202).
+    // PPM без сжатия: кодирование PNG в grim занимало секунды
+    readonly property string framePath: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/qs-screenshot-frame.ppm"
     readonly property string saveDir: (Quickshell.env("XDG_PICTURES_DIR") || Quickshell.env("HOME") + "/Pictures") + "/Screenshots"
 
     function screenByName(name: string): var {
@@ -91,11 +93,14 @@ Scope {
     // Оверлей открывается, когда кадр уже записан
     Process {
         id: grabFrame
-        command: ["grim", "-o", root.output, root.framePath]
+        command: ["grim", "-t", "ppm", "-o", root.output, root.framePath]
         onExited: code => {
-            if (code === 0)
+            if (code === 0) {
+                // Панели шелла остаются на кадре, но закрываются,
+                // чтобы их захват ввода не мешал выделению
+                DropdownStack.dismissAll();
                 root.active = true;
-            else
+            } else
                 console.warn("screenshot: grim завершился с кодом", code);
         }
     }

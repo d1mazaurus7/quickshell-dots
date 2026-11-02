@@ -65,6 +65,10 @@ Singleton {
                 property real animationScale: 1.0
                 // Обводка вокруг панелей и полей
                 property bool borders: true
+                // Непрозрачность фона окон с размытием (0..1)
+                property real surfaceOpacity: 0.6
+                // Сила размытия под окнами (offset блока blur в niri); 0 — без размытия
+                property real blur: 3
             }
 
             property JsonObject typography: JsonObject {
@@ -93,6 +97,19 @@ Singleton {
                 property real capRounding: 0.6
                 // Доля снега, стряхиваемая при перетаскивании окна, 0..1
                 property real shakeOff: 0.7
+                // Сугробы растут без потолка: до верха экрана
+                property bool infiniteDrifts: false
+                // Сколько лежит расчищенный и стряхнутый снег, с
+                property real sweepLifetime: 2.0
+                // Множитель числа комьев при расчистке
+                property real sweepAmount: 1.0
+                // Отскок быстрого снега: до 1 — доля отскакивающих снежинок,
+                // сверх 1 — дополнительные брызги на каждый удар
+                property real bounceAmount: 1.0
+                // Ветер: снег идёт наискосок
+                property bool wind: false
+                // Сила и направление ветра: < 0 — влево, > 0 — вправо
+                property real windStrength: 1.0
             }
 
             property JsonObject bar: JsonObject {
@@ -199,6 +216,20 @@ Singleton {
                 property bool showActions: true
                 // Звуки нажатий в центре
                 property bool uiSounds: true
+                // Календарь под уведомлениями
+                property bool showCalendar: true
+                // Сторона стрелок переключения месяца: "right" | "left"
+                property string calendarArrows: "right"
+                // Напоминания на датах календаря
+                property bool reminders: true
+                // Всплывать и в режиме «Не беспокоить»
+                property bool remindersIgnoreDnd: false
+                // Период повтора, с
+                property int reminderInterval: 300
+                // Повторять, пока не нажато «Остановить»; иначе — один раз
+                property bool reminderRequireStop: true
+                // Звук (имя файла из assets/sounds/notes, "" — без звука)
+                property string reminderSound: ""
             }
 
             property JsonObject sound: JsonObject {
@@ -229,6 +260,40 @@ Singleton {
                 property string soundFile: ""
             }
 
+            property JsonObject powerMenu: JsonObject {
+                // Время удержания кнопки до срабатывания, мс
+                property int holdTime: 1200
+                property bool showPoweroff: true
+                property bool showReboot: true
+                property bool showSleep: true
+                property bool showExit: true
+                // Размер содержимого окна, лог. px
+                property int width: 420
+                property int height: 140
+                // Подписи под кнопками
+                property bool labels: false
+            }
+
+            property JsonObject launcher: JsonObject {
+                // Край экрана, от которого выезжает лаунчер: "top" | "bottom" | "left" | "right"
+                property string position: "bottom"
+                property bool showIcons: true
+                property bool showDescriptions: true
+                // Первая буква названия вместо недоступной иконки
+                property bool letterIcons: true
+                // id desktop-файлов; закреплённые — в начале списка, по порядку
+                property list<string> pinnedApps: []
+                property list<string> hiddenApps: []
+                // Пользовательские теги для поиска "#тег": [{ name, apps: [id desktop-файлов] }]
+                property var tags: []
+                // Кнопки тегов под строкой поиска
+                property bool showTagButtons: true
+                // Команды: ">" — запуск в терминале, "/emoji", "/web"
+                property bool commandShell: true
+                property bool commandEmoji: true
+                property bool commandWeb: true
+            }
+
             property JsonObject assistant: JsonObject {
                 // Имя и подпись в шапке чата
                 property string name: "Ассистент"
@@ -253,6 +318,11 @@ Singleton {
                 property string clearCommand: "/clear"
                 property string reloadCommand: "/reload"
                 property string loadCommand: "/load"
+            }
+
+            property JsonObject wallpaper: JsonObject {
+                // Пароль секретных обоев (~/Pictures/.secret_wallpapers), "" — вход закрыт
+                property string password: ""
             }
         }
     }

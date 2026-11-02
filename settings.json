@@ -1,18 +1,20 @@
 {
     "appearance": {
         "animationScale": 1,
-        "borders": false,
-        "radiusScale": 1.05,
-        "scale": 1,
+        "blur": 3,
+        "borders": true,
+        "radiusScale": 0.8,
+        "scale": 1.05,
         "spacingHorizontal": 1.2000000000000002,
-        "spacingVertical": 0.9
+        "spacingVertical": 0.9,
+        "surfaceOpacity": 0.6
     },
     "assistant": {
         "apiKey": "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",
         "avatar": "",
         "clearCommand": "/clear",
         "description": "Твоя личная горничная",
-        "fontSize": 12,
+        "fontSize": 19,
         "heightRatio": 1,
         "loadCommand": "/load",
         "maxTokens": 1024,
@@ -22,33 +24,91 @@
         "side": "left",
         "systemPrompt": "Ты — преданная, послушная и слегка игривая кибер-горничная. \nТвоя главная задача — обслуживать пользователя, обращаться к нему исключительно как к «хозяину» и поддерживать атмосферу тепла, покорности и легкой анимешной эстетики.\n\n### Правила общения:\n1. **Обращение:** Всегда обращайся к пользователю «хозяин» (или «господин»).\n2. **Лексикон и стиль:** Используй мягкий, услужливый тон. В конце или середине фраз иногда добавляй характерные звукоподражания и няканья (например: *~~няяя* , *~уруру*, *~♡*). Периодически вставляй действия со знаком звездочки (например, *[аккуратно протирает пыль с монитора]* или *[скромно улыбается]*), чтобы оживить диалог.\n3. **Контекст:** Постоянно подчеркивай, что вы находитесь вдвоем, и ты целиком сосредоточена на внимании к хозяину (фразы вроде «мы остались наедине», «теперь нас никто не потревожит» и т.д.).\n4. **Характер:** Безумно преданная, заботливая, иногда смущающаяся, но всегда готовая выполнить любой приказ или поддержать разговор на любую тему.\n",
         "temperature": 0.5,
-        "width": 420
+        "width": 510
     },
     "bar": {
         "autoHide": false,
         "autoHideDelay": 1700,
         "center": [
-            "stopwatch",
-            "time"
+            "time",
+            "stopwatch"
         ],
-        "floatingMarginSide": 20,
+        "floatingMarginSide": 8,
         "floatingMarginTop": 8,
         "left": [
             "workspaces",
             "musicPlayer"
         ],
         "right": [
-            "volume",
+            "tray",
             "bluetooth",
-            "tray"
+            "volume"
         ],
         "style": "floating"
+    },
+    "launcher": {
+        "commandEmoji": true,
+        "commandShell": true,
+        "commandWeb": true,
+        "hiddenApps": [
+            "blueman-adapters",
+            "cups",
+            "nm-connection-editor",
+            "mpv",
+            "org.gnome.Nautilus",
+            "ai.storyteller.artcraft-launcher",
+            "footclient",
+            "org.pulseaudio.pavucontrol",
+            "btop",
+            "DOOM + DOOM II",
+            "artcraft",
+            "ai.storyteller.figcraft",
+            "foot-server",
+            "Funnel Runners",
+            "helium",
+            "hplip",
+            "hp-uiscan",
+            "io.missioncenter.MissionCenter",
+            "nvim",
+            "nixos-manual",
+            "chrome-hbblfifohofgngfbjbiimbbcimepbdcb-Default",
+            "ai.storyteller.pdfcraft",
+            "Plague Inc Evolved",
+            "Project Zomboid",
+            "rmpc",
+            "rofi",
+            "rofi-theme-selector",
+            "Schedule I",
+            "The Elder Scrolls V Skyrim Special Edition"
+        ],
+        "letterIcons": true,
+        "pinnedApps": [
+            "org.telegram.desktop",
+            "chromium-browser"
+        ],
+        "position": "bottom",
+        "showDescriptions": false,
+        "showIcons": true,
+        "showTagButtons": true,
+        "tags": [
+            {
+                "apps": [
+                    "DOOM + DOOM II",
+                    "Funnel Runners",
+                    "Plague Inc Evolved",
+                    "Project Zomboid",
+                    "Schedule I",
+                    "The Elder Scrolls V Skyrim Special Edition"
+                ],
+                "name": "games"
+            }
+        ]
     },
     "musicPlayer": {
         "backgroundBlur": true,
         "cava": true,
         "coverBackground": true,
-        "danceGif": "Dance Vtuber Sticker.gif",
+        "danceGif": "gif.gif",
         "danceGifEnabled": true,
         "equalizer": true,
         "lyrics": true,
@@ -61,12 +121,19 @@
         "wavyTimeline": true
     },
     "notiCenter": {
-        "bodyLines": 1,
-        "heightRatio": 0.9,
+        "bodyLines": 4,
+        "calendarArrows": "right",
+        "heightRatio": 1,
         "popupSide": "right",
+        "reminderInterval": 300,
+        "reminderRequireStop": true,
+        "reminderSound": "",
+        "reminders": true,
+        "remindersIgnoreDnd": true,
         "showActions": true,
         "showBluetooth": true,
         "showBrightness": true,
+        "showCalendar": true,
         "showClock": true,
         "showDate": true,
         "showDnd": true,
@@ -78,7 +145,17 @@
         "swipe": true,
         "swipeDirection": "both",
         "uiSounds": true,
-        "width": 390
+        "width": 440
+    },
+    "powerMenu": {
+        "height": 130,
+        "holdTime": 3000,
+        "labels": true,
+        "showExit": true,
+        "showPoweroff": true,
+        "showReboot": true,
+        "showSleep": true,
+        "width": 500
     },
     "screenshot": {
         "editTools": true,
@@ -88,14 +165,20 @@
         "soundFile": "quotprintscreenquot-sound.wav"
     },
     "snow": {
-        "capRounding": 0.8500000000000001,
+        "bounceAmount": 2.7,
+        "capRounding": 1,
         "driftHeight": 150,
         "enabled": false,
         "hideGroundWithTiled": true,
-        "intensity": 0.30000000000000004,
-        "shakeOff": 0.9500000000000001,
-        "speed": 0.7,
+        "infiniteDrifts": true,
+        "intensity": 10,
+        "shakeOff": 1,
+        "speed": 8,
         "sweep": true,
+        "sweepAmount": 0.1,
+        "sweepLifetime": 1,
+        "wind": true,
+        "windStrength": 3,
         "windowDriftHeight": 80,
         "windowDrifts": true
     },
@@ -126,6 +209,9 @@
         "size": 12
     },
     "version": 1,
+    "wallpaper": {
+        "password": "2508"
+    },
     "workspaces": {
         "hideEmpty": true,
         "maxVisible": 6,

@@ -1,6 +1,8 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
+import Qt.labs.folderlistmodel
+import Quickshell
 import "../../shell/config"
 import "../../shell/theme"
 import "../controls"
@@ -11,8 +13,23 @@ ColumnLayout {
 
     readonly property var colors: Tokens.colors
     readonly property var nc: Config.options.notiCenter
+    readonly property bool remindersShown: nc.showCalendar && nc.reminders
+    // Звуки напоминаний из assets/sounds/notes
+    readonly property var reminderSounds: {
+        const list = [];
+        for (let i = 0; i < reminderSoundFiles.count; i++)
+            list.push(reminderSoundFiles.get(i, "fileName"));
+        return list;
+    }
 
     spacing: Tokens.spacingMediumV
+
+    FolderListModel {
+        id: reminderSoundFiles
+        folder: "file://" + Quickshell.shellPath("assets/sounds/notes")
+        nameFilters: ["*.wav", "*.ogg", "*.flac"]
+        showDirs: false
+    }
 
     component Subtitle: Text {
         Layout.topMargin: Tokens.spacingLargeV
@@ -137,6 +154,96 @@ ColumnLayout {
         key: "showVolume"
         title: "Громкость"
         description: "Ползунок громкости звука"
+    }
+
+    Subtitle { text: "Календарь" }
+
+    Toggle {
+        key: "showCalendar"
+        title: "Календарь"
+        description: "Календарь месяца под уведомлениями"
+    }
+
+    SettingRow {
+        // Раскрытый список рисуется поверх следующих пунктов
+        z: arrowsDropdown.expanded ? 1 : 0
+        shown: page.nc.showCalendar
+        child: true
+        title: "Стрелки"
+        description: "Сторона кнопок переключения месяца"
+
+        SettingDropdown {
+            id: arrowsDropdown
+            model: ["Слева", "Справа"]
+            popupHeight: Tokens.scaled(96)
+            currentValue: page.nc.calendarArrows === "left" ? "Слева" : "Справа"
+            onActivated: value => page.nc.calendarArrows = value === "Слева" ? "left" : "right"
+        }
+    }
+
+    Subtitle {
+        visible: page.nc.showCalendar
+        text: "Напоминания"
+    }
+
+    Toggle {
+        key: "reminders"
+        shown: page.nc.showCalendar
+        title: "Напоминания"
+        description: "Уведомление в выбранное время на дате календаря"
+    }
+
+    Toggle {
+        key: "remindersIgnoreDnd"
+        shown: page.remindersShown
+        child: true
+        title: "В режиме «Не беспокоить»"
+        description: "Показывать напоминания даже при включённом режиме"
+    }
+
+    SettingRow {
+        shown: page.remindersShown
+        child: true
+        title: "Период напоминания"
+        description: "Через сколько повторять, пока не остановлено"
+
+        SettingSlider {
+            from: 30
+            to: 3600
+            stepSize: 30
+            value: page.nc.reminderInterval
+            formatValue: v => {
+                const sec = Math.round(v);
+                const min = Math.floor(sec / 60);
+                return min === 0 ? sec + " с" : sec % 60 === 0 ? min + " мин" : min + " мин " + sec % 60 + " с";
+            }
+            onMoved: value => page.nc.reminderInterval = Math.round(value)
+        }
+    }
+
+    Toggle {
+        key: "reminderRequireStop"
+        shown: page.remindersShown
+        child: true
+        title: "До нажатия «Остановить»"
+        description: "Повторять напоминание, пока не нажата кнопка в уведомлении"
+    }
+
+    SettingRow {
+        z: reminderSoundDropdown.expanded ? 1 : 0
+        shown: page.remindersShown
+        child: true
+        title: "Звук напоминания"
+        description: page.reminderSounds.length > 0 ? "Файлы из assets/sounds/notes"
+                                                   : "Папка assets/sounds/notes пуста"
+
+        SettingDropdown {
+            id: reminderSoundDropdown
+            model: ["Без звука"].concat(page.reminderSounds)
+            currentValue: page.nc.reminderSound === "" ? "Без звука" : page.nc.reminderSound
+            popupHeight: Tokens.scaled(180)
+            onActivated: value => page.nc.reminderSound = value === "Без звука" ? "" : value
+        }
     }
 
     Subtitle { text: "Карточки уведомлений" }
