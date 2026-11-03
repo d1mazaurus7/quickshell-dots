@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Shapes
 import Quickshell
+import Quickshell.Wayland
 import Quickshell.Services.Notifications
 import "../../theme" as Theme
 import "../../shell/theme"

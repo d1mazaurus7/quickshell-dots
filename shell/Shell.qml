@@ -13,6 +13,7 @@ import "../settings" as Settings
 import "../modules/snow" as Snow
 import "../Bar/stopwatch" as Stopwatch
 import "../services/screenshot" as Screenshot
+import "../services/niri" as Niri
 import "../Bar/assistant" as Assistant
 import "../Bar/osd" as Osd
 import "../Bar/power" as Power
@@ -30,6 +31,8 @@ Item {
     Stopwatch.Stopwatch { id: stopwatchWindow }
     // Скриншоты: qs ipc call screenshot capture
     Screenshot.Screenshot {}
+    // Защита от записи экрана: правила в niri/config/layer-rules.kdl
+    Niri.NiriScreencastGuard {}
     // Чат с ИИ: qs ipc call assistant toggle
     Assistant.AssistantState { id: assistantState }
     Assistant.AssistantWindow { id: assistantWindow; chat: assistantState }

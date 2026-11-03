@@ -22,7 +22,7 @@ PanelWindow {
     screen: Quickshell.screens[0]
     visible: notifications.popups.count > 0
     color: "transparent"
-    WlrLayershell.namespace: "qs:notifications"
+    WlrLayershell.namespace: "message-card"
     WlrLayershell.layer: WlrLayer.Overlay
     // Учитывает зону бара: окно встаёт под ним.
     exclusionMode: ExclusionMode.Normal

@@ -44,7 +44,7 @@
             "bluetooth",
             "volume"
         ],
-        "style": "attached"
+        "style": "floating"
     },
     "launcher": {
         "commandEmoji": true,
@@ -155,7 +155,7 @@
     },
     "powerMenu": {
         "height": 130,
-        "holdTime": 3000,
+        "holdTime": 1000,
         "labels": true,
         "showExit": true,
         "showPoweroff": true,
@@ -169,6 +169,14 @@
         "notify": true,
         "sound": true,
         "soundFile": "quotprintscreenquot-sound.wav"
+    },
+    "security": {
+        "hidePopups": true,
+        "protectedApps": [
+            "firefox",
+            "org.telegram.desktop",
+            "mullvad-vpn"
+        ]
     },
     "snow": {
         "bounceAmount": 6.2,

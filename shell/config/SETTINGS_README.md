@@ -31,6 +31,7 @@
 | `launcher`   | `position` (string: `top` / `bottom` / `left` / `right`), `showIcons`, `showDescriptions`, `letterIcons` (bool), `pinnedApps`, `hiddenApps` (list<string>, id desktop-файлов; менять присваиванием), `tags` (var: `[{ name, apps }]`, теги для поиска `#тег`; менять присваиванием), `showTagButtons` (bool), `commandShell`, `commandEmoji`, `commandWeb` (bool) |
 | `assistant`  | `name`, `description`, `systemPrompt`, `apiKey`, `model` (string), `avatar` (string, имя файла из `assets/img/avatars`, `""` — нет), `temperature` (real), `maxTokens` (int), `side` (string: `left` / `right`), `width`, `fontSize` (int), `heightRatio` (real 0.4..1), `clearCommand`, `reloadCommand`, `loadCommand` (string) |
 | `wallpaper`  | `password` (string, пароль секретных обоев, `""` — вход закрыт) |
+| `security`   | `hidePopups` (bool), `protectedApps` (list<string>, id desktop-файлов; менять присваиванием). Пишутся в `~/.config/niri/config/layer-rules.kdl` (`services/niri/NiriScreencastGuard.qml`) |
 
 ## Правила
 

@@ -32,6 +32,7 @@ PanelWindow {
         { title: "Управление питанием", page: powerMenuPage },
         { title: "Лаунчер", page: launcherPage },
         { title: "Обои", page: wallpaperPage },
+        { title: "Безопасность", page: securityPage },
         { title: "Оболочка", page: shellPage },
         { title: "NixOS", page: nixosPage },
         { title: "О системе", page: aboutPage }
@@ -83,6 +84,7 @@ PanelWindow {
     Component { id: powerMenuPage; Pages.PowerMenuPage {} }
     Component { id: launcherPage; Pages.LauncherPage {} }
     Component { id: wallpaperPage; Pages.WallpaperPage {} }
+    Component { id: securityPage; Pages.SecurityPage {} }
     Component { id: aboutPage; Pages.AboutPage {} }
     Component { id: shellPage; Pages.ShellPage { updater: shellUpdater } }
     Component { id: nixosPage; Pages.NixosPage { updater: nixosUpdater } }

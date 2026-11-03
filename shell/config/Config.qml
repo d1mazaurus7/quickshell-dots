@@ -324,6 +324,13 @@ Singleton {
                 // Пароль секретных обоев (~/Pictures/.secret_wallpapers), "" — вход закрыт
                 property string password: ""
             }
+
+            property JsonObject security: JsonObject {
+                // Скрывать всплывающие уведомления (слой message-card) от записи экрана
+                property bool hidePopups: false
+                // id desktop-файлов, окна которых скрываются от записи экрана
+                property list<string> protectedApps: []
+            }
         }
     }
 }

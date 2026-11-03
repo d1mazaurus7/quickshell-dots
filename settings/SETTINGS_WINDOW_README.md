@@ -23,6 +23,7 @@ settings/
     InterfacePage.qml     # раздел «Интерфейс»: масштаб, отступы, скругление, обводка
     BarPage.qml           # раздел «Бар»: модули по блокам бара перетаскиванием (Config.options.bar)
                           # список модулей — из shell/bar/BarModules.qml, см. modules/README.md
+    SecurityPage.qml      # раздел «Безопасность»: защита от записи экрана (Config.options.security)
     ShellPage.qml         # раздел «Оболочка»: обновление из GitHub (services/updater/Updater.qml)
     NixosPage.qml         # раздел «NixOS»: install.sh из nixos-config, optimize, rebuild (services/updater/NixosUpdater.qml)
 ```
