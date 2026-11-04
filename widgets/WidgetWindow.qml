@@ -32,6 +32,14 @@ PanelWindow {
     WlrLayershell.layer: WlrLayer.Bottom
     WlrLayershell.namespace: "qs:widget"
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+    // Размытие под виджетом (ext-background-effect-v1): область — loader.blurShape (своя Region
+    // виджета, например по форме спектра) или loader.blurItem со скруглением
+    BackgroundEffect.blurRegion: loader.blurShape ?? (loader.blurItem ? blurRegion : null)
+    Region {
+        id: blurRegion
+        item: loader.blurItem
+        radius: loader.blurItem?.radius ?? 0
+    }
 
     Loader {
         id: loader
@@ -43,7 +51,17 @@ PanelWindow {
         }
         // services нужны не всем виджетам; проверяем один раз, без привязки к самому свойству
         property bool wantsServices: false
-        onLoaded: wantsServices = "services" in item
+        // Необязательное property Item blurItem виджета: что размывать под окном
+        property bool wantsBlur: false
+        readonly property Item blurItem: wantsBlur ? item.blurItem : null
+        // Необязательное property Region blurShape виджета: своя область размытия
+        property bool wantsShape: false
+        readonly property var blurShape: wantsShape ? item.blurShape : null
+        onLoaded: {
+            wantsServices = "services" in item;
+            wantsBlur = "blurItem" in item;
+            wantsShape = "blurShape" in item;
+        }
     }
     Binding {
         target: loader.item

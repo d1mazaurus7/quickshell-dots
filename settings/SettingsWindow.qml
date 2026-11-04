@@ -29,8 +29,12 @@ PanelWindow {
         { title: "Центр уведомлений", page: notiCenterPage },
         { title: "Скриншоты", page: screenshotPage },
         { title: "Ассистент", page: assistantPage },
+        { title: "Новости", page: newsPage },
+        { title: "Погода", page: weatherPage },
         { title: "Управление питанием", page: powerMenuPage },
+        { title: "Управление производительностью", page: performanceMenuPage },
         { title: "Лаунчер", page: launcherPage },
+        { title: "Буфер обмена", page: clipboardPage },
         { title: "Обои", page: wallpaperPage },
         { title: "Безопасность", page: securityPage },
         { title: "Оболочка", page: shellPage },
@@ -81,8 +85,12 @@ PanelWindow {
     Component { id: notiCenterPage; Pages.NotiCenterPage {} }
     Component { id: screenshotPage; Pages.ScreenshotPage {} }
     Component { id: assistantPage; Pages.AssistantPage {} }
+    Component { id: newsPage; Pages.NewsPage {} }
+    Component { id: weatherPage; Pages.WeatherPage {} }
     Component { id: powerMenuPage; Pages.PowerMenuPage {} }
+    Component { id: performanceMenuPage; Pages.PerformanceMenuPage {} }
     Component { id: launcherPage; Pages.LauncherPage {} }
+    Component { id: clipboardPage; Pages.ClipboardPage {} }
     Component { id: wallpaperPage; Pages.WallpaperPage {} }
     Component { id: securityPage; Pages.SecurityPage {} }
     Component { id: aboutPage; Pages.AboutPage {} }

@@ -12,6 +12,8 @@ widgets/
   editor/                   — редактор: EditorWindow, EditorToolbar, WidgetSettingsPanel, WidgetFrame, GridOverlay, Expander
   controls/                 — переиспользуемые элементы (см. ниже)
   music/                    — виджет «Музыкальный плеер»
+  cava/                     — виджет «Визуализатор» (спектр cava)
+  clock/                    — виджет «Часы» (ClockGlyph — символ со slide-сменой)
   sysmon/                   — виджеты потребления: диск, RAM, CPU, GPU (один компонент, ресурс — settings.kind)
 ```
 
@@ -47,6 +49,10 @@ Item {
     // Необязательно: общие сервисы оболочки (WidgetsState.services), сейчас { equalizer }.
     // Передаются только виджетам, объявившим это свойство
     property var services: ({})
+    // Необязательно: Item (со свойством radius), под которым окно размывает фон; null — без размытия
+    property Item blurItem: null
+    // Необязательно: своя Region размытия (например, по форме фигур); если не null — важнее blurItem
+    property Region blurShape: null
 }
 ```
 
@@ -77,6 +83,8 @@ Item {
     width: 200, height: 100,             // размер нового экземпляра, лог. px до Tokens.scaled
     minWidth: 120, maxWidth: 400,        // пределы слайдеров размера
     minHeight: 80, maxHeight: 240,
+    resizable: true,                     // необязательно: края тянутся мышью в редакторе (WidgetFrame)
+    flippable: true,                     // необязательно: кнопки отражения над рамкой, пишут flipH/flipV
     defaults: { showSeconds: false }     // дефолты настроек экземпляра
 }
 ```

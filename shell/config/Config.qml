@@ -276,6 +276,19 @@ Singleton {
                 property bool labels: false
             }
 
+            property JsonObject performanceMenu: JsonObject {
+                // Время удержания кнопки до срабатывания, мс
+                property int holdTime: 600
+                property bool showPowerSaver: true
+                property bool showBalanced: true
+                property bool showPerformance: true
+                // Размер содержимого окна, лог. px
+                property int width: 460
+                property int height: 140
+                // Подписи под кнопками
+                property bool labels: true
+            }
+
             property JsonObject launcher: JsonObject {
                 // Край экрана, от которого выезжает лаунчер: "top" | "bottom" | "left" | "right"
                 property string position: "bottom"
@@ -294,6 +307,21 @@ Singleton {
                 property bool commandShell: true
                 property bool commandEmoji: true
                 property bool commandWeb: true
+            }
+
+            property JsonObject clipboard: JsonObject {
+                // Максимум записей в истории
+                property int maxItems: 100
+                property bool images: true
+                // Хранить историю между сессиями
+                property bool persist: true
+                // Ссылки на скопированные файлы (text/uri-list)
+                property bool documents: true
+                // Размер окна, лог. px
+                property int width: 600
+                property int height: 500
+                // Записей на одной странице списка
+                property int pageItems: 8
             }
 
             property JsonObject assistant: JsonObject {
@@ -320,6 +348,50 @@ Singleton {
                 property string clearCommand: "/clear"
                 property string reloadCommand: "/reload"
                 property string loadCommand: "/load"
+            }
+
+            property JsonObject news: JsonObject {
+                // Готовые темы Google News (id из Bar/news/NewsTopics.js), менять присваиванием
+                property list<string> topics: ["WORLD", "TECHNOLOGY"]
+                // Свои темы — поисковые запросы Google News, менять присваиванием
+                property list<string> queries: []
+                // URL своих RSS/Atom-лент, менять присваиванием
+                property list<string> feeds: []
+                // Период обновления, пока окно открыто, мин
+                property int refreshInterval: 30
+                // Новостей с одной темы или ленты
+                property int maxItems: 20
+                // Край экрана, от которого выезжает окно: "left" | "right"
+                property string side: "right"
+                // Ширина окна, лог. px
+                property int width: 420
+                // Высота окна — доля доступной высоты экрана, 0.4..1
+                property real heightRatio: 1.0
+            }
+
+            property JsonObject weather: JsonObject {
+                // Дней в прогнозе, 1..7
+                property int days: 7
+                // Показывать почасовой прогноз
+                property bool hourly: true
+                // Фон карточки по времени суток и погоде; выкл — цвета палитры
+                property bool dynamicBackground: true
+                // Динамический фон на всё окно, а не только на карточку текущей погоды
+                property bool fullBackground: false
+                // Полупрозрачные карточки с размытием динамического фона (при fullBackground)
+                property bool blur: false
+                // Обводка полупрозрачных карточек (при blur)
+                property bool borders: true
+                // Стиль значков погоды: "material" (цвета палитры) | "colored" (цветные градиенты)
+                property string iconStyle: "material"
+                // Увеличенный масштаб окна (×1.25)
+                property bool zoom: false
+                // Местоположение по IP; выкл — по city
+                property bool autoLocation: true
+                // Город для прогноза при выключенном автоопределении
+                property string city: ""
+                // Период обновления, мин
+                property int refreshInterval: 30
             }
 
             property JsonObject wallpaper: JsonObject {

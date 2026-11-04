@@ -96,6 +96,8 @@ Item {
     readonly property var wifiDevice: Networking.devices.values.find(d => d.type === DeviceType.Wifi) ?? null
     readonly property var wifiNetwork: wifiDevice ? (wifiDevice.networks.values.find(n => n.connected) ?? null) : null
     readonly property bool wifiOn: !!wifiDevice && Networking.wifiEnabled
+    // Подключённый Ethernet (приоритетнее Wi-Fi в плитке)
+    readonly property var wiredDevice: Networking.devices.values.find(d => d.type === DeviceType.Wired && d.nmManaged && d.connected) ?? null
     readonly property int wifiOthersCount: wifiDevice ? wifiDevice.networks.values.filter(n => !n.connected && n.name !== "").length : 0
 
     // ---- Состояние: Bluetooth ----
@@ -272,9 +274,12 @@ Item {
                         visible: root.cfg.showWifi
                         s: root.s
                         width: tiles.tileWidth("wifi")
-                        title: "Wi-Fi"
-                        active: Networking.wifiEnabled
-                        subtitle: !Networking.wifiEnabled ? "Выключен"
+                        title: root.wiredDevice ? "Ethernet" : "Wi-Fi"
+                        active: !!root.wiredDevice || Networking.wifiEnabled
+                        subtitle: root.wiredDevice
+                            ? (root.wiredDevice.network ? root.wiredDevice.network.name : root.wiredDevice.name)
+                                + (root.wiredDevice.linkSpeed > 0 ? " · " + root.wiredDevice.linkSpeed + " Мбит/с" : "")
+                            : !Networking.wifiEnabled ? "Выключен"
                             : root.wifiNetwork ? root.wifiNetwork.name : "Не подключено"
                         onToggled: {
                             Networking.wifiEnabled = !Networking.wifiEnabled;

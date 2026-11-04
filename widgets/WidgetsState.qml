@@ -12,6 +12,14 @@ QtObject {
     readonly property var items: cfg.items
     // uid — модель окон: строки сохраняют окна при переприсваивании items
     readonly property var uids: items.map(i => i.uid)
+    // Модель окон с порядком наложения: сначала виджеты с settings.lower («на слой ниже»).
+    // Внутри слоя niri кладёт позже созданную поверхность выше, поэтому нижние создаются первыми.
+    // Ключ = uid + "#" + список нижних: при смене списка все окна пересоздаются в новом порядке
+    readonly property var windowKeys: {
+        const lowered = uids.filter(u => settingsOf(u).lower === true);
+        const sig = lowered.join(",");
+        return lowered.concat(uids.filter(u => !lowered.includes(u))).map(u => u + "#" + sig);
+    }
     readonly property var byUid: {
         const m = {};
         for (const i of items)

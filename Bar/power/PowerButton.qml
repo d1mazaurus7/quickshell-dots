@@ -12,6 +12,8 @@ Item {
     property string icon
     property string label
     property bool showLabel: false
+    // Выбранный вариант (например, текущий профиль) — подсвечивается
+    property bool active: false
     property int holdTime: 1000
     property int size: Tokens.scaled(64)
 
@@ -103,6 +105,7 @@ Item {
                 radius: Tokens.radiusLarge
                 color: area.pressed ? root.colors.surface_container_highest
                      : area.containsMouse ? root.colors.surface_container_high
+                     : root.active ? root.colors.secondary_container
                      : root.colors.surface_container
                 Behavior on color { ColorAnimation { duration: Tokens.animationFast } }
             }
@@ -150,7 +153,7 @@ Item {
             Text {
                 anchors.centerIn: parent
                 text: root.icon
-                color: root.colors.on_surface
+                color: root.active ? root.colors.on_secondary_container : root.colors.on_surface
                 font.family: "Material Symbols Rounded"
                 font.pixelSize: Math.round(root.size * 0.42)
             }

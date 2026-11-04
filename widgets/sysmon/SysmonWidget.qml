@@ -10,6 +10,8 @@ Item {
 
     property var settings: ({})
     property bool editing: false
+    // Размытие фона под карточкой (WidgetWindow): свободная часть — стекло, цветом только занятое
+    readonly property Item blurItem: settings.blurFree === true ? card : null
 
     readonly property var colors: Tokens.colors
     readonly property string kind: settings.kind ?? "cpu"
@@ -41,7 +43,10 @@ Item {
     }
 
     WidgetCard {
+        id: card
         anchors.fill: parent
+        color: root.blurItem ? Qt.alpha(root.colors.surface_container, 0.25) : root.colors.surface_container
+        Behavior on color { ColorAnimation { duration: Tokens.animationMedium } }
 
         // Страницы на всю карточку, смена — слайдом в сторону выбранной
         Item {

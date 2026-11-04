@@ -3,10 +3,10 @@
         "animationScale": 1,
         "blur": 3,
         "borders": true,
-        "radiusScale": 0.8,
+        "radiusScale": 1,
         "scale": 1.05,
-        "spacingHorizontal": 1.2000000000000002,
-        "spacingVertical": 0.9,
+        "spacingHorizontal": 1,
+        "spacingVertical": 1,
         "surfaceOpacity": 0.6
     },
     "assistant": {
@@ -31,7 +31,9 @@
         "autoHideDelay": 1700,
         "center": [
             "time",
-            "stopwatch"
+            "weather",
+            "stopwatch",
+            "news"
         ],
         "floatingMarginSide": 8,
         "floatingMarginTop": 8,
@@ -44,7 +46,16 @@
             "bluetooth",
             "volume"
         ],
-        "style": "floating"
+        "style": "full"
+    },
+    "clipboard": {
+        "documents": true,
+        "height": 500,
+        "images": true,
+        "maxItems": 100,
+        "pageItems": 8,
+        "persist": true,
+        "width": 600
     },
     "launcher": {
         "commandEmoji": true,
@@ -87,7 +98,7 @@
             "chromium-browser"
         ],
         "position": "bottom",
-        "showDescriptions": false,
+        "showDescriptions": true,
         "showIcons": true,
         "showTagButtons": true,
         "tags": [
@@ -107,6 +118,13 @@
                     "chromium-browser"
                 ],
                 "name": "browser"
+            },
+            {
+                "apps": [
+                    "rmpc",
+                    "spotify"
+                ],
+                "name": "music"
             }
         ]
     },
@@ -115,16 +133,37 @@
         "cava": true,
         "coverBackground": true,
         "danceGif": "gif.gif",
-        "danceGifEnabled": true,
+        "danceGifEnabled": false,
         "equalizer": true,
         "lyrics": true,
-        "lyricsAlign": "left",
+        "lyricsAlign": "center",
         "lyricsFontSize": 21,
         "lyricsScroll": true,
         "lyricsSeek": true,
         "showArtist": true,
         "timelineStyle": "material",
         "wavyTimeline": true
+    },
+    "news": {
+        "feeds": [
+        ],
+        "heightRatio": 1,
+        "maxItems": 20,
+        "queries": [
+            "Linux",
+            "AI",
+            "Tech"
+        ],
+        "refreshInterval": 30,
+        "side": "right",
+        "topics": [
+            "NATION",
+            "BUSINESS",
+            "TECHNOLOGY",
+            "HEALTH",
+            "ENTERTAINMENT"
+        ],
+        "width": 420
     },
     "notiCenter": {
         "bodyLines": 4,
@@ -140,7 +179,7 @@
         "showBluetooth": true,
         "showBrightness": true,
         "showCalendar": true,
-        "showClock": true,
+        "showClock": false,
         "showDate": true,
         "showDnd": true,
         "showSeconds": true,
@@ -153,15 +192,24 @@
         "uiSounds": true,
         "width": 440
     },
+    "performanceMenu": {
+        "height": 140,
+        "holdTime": 2000,
+        "labels": true,
+        "showBalanced": true,
+        "showPerformance": true,
+        "showPowerSaver": true,
+        "width": 460
+    },
     "powerMenu": {
         "height": 130,
-        "holdTime": 1000,
+        "holdTime": 1500,
         "labels": true,
         "showExit": true,
         "showPoweroff": true,
         "showReboot": true,
         "showSleep": true,
-        "width": 500
+        "width": 380
     },
     "screenshot": {
         "editTools": true,
@@ -174,8 +222,7 @@
         "hidePopups": true,
         "protectedApps": [
             "firefox",
-            "org.telegram.desktop",
-            "mullvad-vpn"
+            "org.telegram.desktop"
         ]
     },
     "snow": {
@@ -183,12 +230,12 @@
         "capRounding": 1,
         "driftHeight": 20,
         "enabled": false,
-        "hideGroundWithTiled": false,
-        "infiniteDrifts": false,
+        "hideGroundWithTiled": true,
+        "infiniteDrifts": true,
         "intensity": 6.9,
         "shakeOff": 1,
         "speed": 6,
-        "sweep": false,
+        "sweep": true,
         "sweepAmount": 2.6,
         "sweepLifetime": 4.5,
         "wind": true,
@@ -210,13 +257,13 @@
     "stopwatch": {
         "barWidget": true,
         "blinkIcon": true,
-        "icon": "💩",
+        "icon": "⌚",
         "side": "left"
     },
     "time": {
-        "shortWeekday": true,
+        "shortWeekday": false,
         "showDate": true,
-        "showSeconds": true,
+        "showSeconds": false,
         "showWeekday": true
     },
     "typography": {
@@ -227,9 +274,22 @@
     "wallpaper": {
         "password": "2508"
     },
+    "weather": {
+        "autoLocation": false,
+        "blur": true,
+        "borders": false,
+        "city": "Минск",
+        "days": 7,
+        "dynamicBackground": true,
+        "fullBackground": true,
+        "hourly": true,
+        "iconStyle": "colored",
+        "refreshInterval": 20,
+        "zoom": true
+    },
     "widgets": {
         "grid": true,
-        "gridSize": 50,
+        "gridSize": 35,
         "items": [
             {
                 "height": 193,
@@ -258,6 +318,7 @@
                 "height": 254,
                 "screen": "DP-2",
                 "settings": {
+                    "blurFree": true,
                     "interval": 3000,
                     "showUsed": true,
                     "showWave": true
@@ -272,6 +333,7 @@
                 "height": 252,
                 "screen": "DP-2",
                 "settings": {
+                    "blurFree": true,
                     "interval": 4000,
                     "showUsed": true,
                     "showWave": true
@@ -286,6 +348,7 @@
                 "height": 253,
                 "screen": "DP-2",
                 "settings": {
+                    "blurFree": true
                 },
                 "type": "sysCpu",
                 "uid": "sysCpu-mw1v5ymc",
@@ -297,12 +360,54 @@
                 "height": 256,
                 "screen": "DP-2",
                 "settings": {
+                    "blurFree": true
                 },
                 "type": "sysGpu",
                 "uid": "sysGpu-mw1v6wrd",
                 "width": 200,
                 "x": 300,
                 "y": 600
+            },
+            {
+                "height": 252,
+                "screen": "DP-2",
+                "settings": {
+                    "background": false,
+                    "barCount": 128,
+                    "behindBlur": true,
+                    "blur": false,
+                    "blurSpectrum": true,
+                    "colorless": false,
+                    "flipH": false,
+                    "flipV": false,
+                    "glow": true,
+                    "lower": true,
+                    "style": "wave"
+                },
+                "type": "cavaVisualizer",
+                "uid": "cavaVisualizer-mw25bfsl",
+                "width": 4032,
+                "x": 0,
+                "y": 1188
+            },
+            {
+                "height": 315,
+                "screen": "DP-2",
+                "settings": {
+                    "align": "center",
+                    "background": true,
+                    "backgroundBlur": true,
+                    "blinkSeparator": true,
+                    "layout": "full",
+                    "showSeconds": true,
+                    "textBlur": false,
+                    "whiteText": true
+                },
+                "type": "clock",
+                "uid": "clock-mw279wiy",
+                "width": 784,
+                "x": 840,
+                "y": 420
             }
         ]
     },

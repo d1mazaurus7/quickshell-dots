@@ -9,11 +9,13 @@ import "../../modules/music_player" as MusicPlayer
 import "../../modules/time" as Time
 import "../../modules/volume" as Volume
 import "../../Bar/stopwatch" as Stopwatch
+import "../../Bar/news" as News
+import "../../Bar/weather" as Weather
 
 // Реестр модулей бара: id (ключ в Config.options.bar), название для настроек, компонент.
 // Новый модуль — импорт, Component и строка в list.
 // Компонент получает required property bar — окно бара (Shell.qml):
-// barHeight, modelData (экран), stopwatch, musicModule, toggleMusicPlayer().
+// barHeight, modelData (экран), stopwatch, musicModule, toggleMusicPlayer(), news (окно новостей), toggleNews().
 Singleton {
     id: root
 
@@ -24,7 +26,9 @@ Singleton {
         { id: "volume", title: "Звук", component: volume },
         { id: "time", title: "Время", component: time },
         { id: "tray", title: "Трей", component: tray },
-        { id: "bluetooth", title: "Bluetooth", component: bluetooth }
+        { id: "bluetooth", title: "Bluetooth", component: bluetooth },
+        { id: "news", title: "Новости", component: news },
+        { id: "weather", title: "Погода", component: weather }
     ]
 
     function find(id) {
@@ -90,6 +94,25 @@ Singleton {
         id: bluetooth
         Bluetooth.Bluetooth {
             required property var bar
+            barHeight: bar.barHeight
+        }
+    }
+
+    Component {
+        id: news
+        News.NewsModule {
+            required property var bar
+            barHeight: bar.barHeight
+            active: bar.news.open
+            onOpenRequested: bar.toggleNews()
+        }
+    }
+
+    Component {
+        id: weather
+        Weather.WeatherModule {
+            required property var bar
+            output: bar.modelData.name
             barHeight: bar.barHeight
         }
     }

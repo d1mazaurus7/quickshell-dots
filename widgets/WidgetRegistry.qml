@@ -1,5 +1,7 @@
 import QtQuick
 // Импорт каталогов типов: иначе Quickshell не сканирует их и локальные типы недоступны
+import "cava" as CavaWidget
+import "clock" as ClockWidget
 import "music" as MusicWidget
 import "sysmon" as SysmonWidget
 
@@ -11,6 +13,7 @@ QtObject {
     // Дефолты виджетов потребления; kind — ресурс, не меняется
     readonly property var sysmonDefaults: ({
         showWave: true,
+        blurFree: false,
         showUsed: true,
         showFree: true,
         usageTab: true,
@@ -61,6 +64,32 @@ QtObject {
                 lyricsScroll: true,
                 lyricsSeek: true
             }
+        },
+        {
+            type: "cavaVisualizer",
+            title: "Визуализатор",
+            icon: "graphic_eq",
+            component: Qt.resolvedUrl("cava/CavaWidget.qml"),
+            settingsComponent: Qt.resolvedUrl("cava/CavaWidgetSettings.qml"),
+            width: 360, height: 120,
+            minWidth: 40, maxWidth: 3840,
+            minHeight: 24, maxHeight: 2160,
+            // Края тянутся мышью в редакторе; кнопки отражения пишут flipH/flipV
+            resizable: true,
+            flippable: true,
+            defaults: { background: true, blur: true, behindBlur: false, colorless: false, glow: false, style: "wave", barCount: 24, flipH: false, flipV: false, lower: false }
+        },
+        {
+            type: "clock",
+            title: "Часы",
+            icon: "schedule",
+            component: Qt.resolvedUrl("clock/ClockWidget.qml"),
+            settingsComponent: Qt.resolvedUrl("clock/ClockWidgetSettings.qml"),
+            width: 260, height: 110,
+            minWidth: 40, maxWidth: 3840,
+            minHeight: 24, maxHeight: 2160,
+            resizable: true,
+            defaults: { layout: "full", align: "center", showSeconds: false, blinkSeparator: false, textBlur: false, whiteText: false, background: false, backgroundBlur: false }
         },
         root.sysmon("sysDisk", "disk", "Диск", "hard_drive"),
         root.sysmon("sysRam", "ram", "RAM", "memory_alt"),

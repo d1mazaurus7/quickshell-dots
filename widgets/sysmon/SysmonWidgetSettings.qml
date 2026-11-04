@@ -29,6 +29,12 @@ Column {
         }
         ToggleRow {
             width: parent.width
+            text: "Размывать фон незанятого ресурса"
+            checked: root.settings.blurFree === true
+            onToggled: c => root.settingChanged("blurFree", c)
+        }
+        ToggleRow {
+            width: parent.width
             text: "Занято"
             checked: root.settings.showUsed === true
             onToggled: c => root.settingChanged("showUsed", c)

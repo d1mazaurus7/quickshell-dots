@@ -1,0 +1,14 @@
+singleton WeatherState 1.0 WeatherState.qml
+WeatherModule 1.0 WeatherModule.qml
+WeatherPanel 1.0 WeatherPanel.qml
+WeatherIpc 1.0 WeatherIpc.qml
+WeatherCard 1.0 WeatherCard.qml
+WeatherCloud 1.0 WeatherCloud.qml
+WeatherIcon 1.0 WeatherIcon.qml
+WeatherText 1.0 WeatherText.qml
+WeatherStat 1.0 WeatherStat.qml
+WeatherTimeSlider 1.0 WeatherTimeSlider.qml
+WeatherOrb 1.0 WeatherOrb.qml
+WeatherGlyph 1.0 WeatherGlyph.qml
+WeatherGradientGlyph 1.0 WeatherGradientGlyph.qml
+WeatherShape 1.0 WeatherShape.qml

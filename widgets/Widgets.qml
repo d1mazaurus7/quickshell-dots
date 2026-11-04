@@ -27,11 +27,11 @@ Scope {
     }
 
     Variants {
-        model: widgetsState.uids
+        model: widgetsState.windowKeys
 
         WidgetWindow {
             required property string modelData
-            uid: modelData
+            uid: modelData.split("#")[0]
             widgets: widgetsState
         }
     }

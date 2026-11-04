@@ -16,6 +16,7 @@ settings/
     SettingSlider.qml     # слайдер: value, from/to/stepSize, formatValue, moved(value) по отпусканию
     SettingSwitch.qml     # переключатель: checked, toggled(checked)
     SettingButton.qml     # кнопка действия: text, icon, clicked()
+    SettingStringList.qml # список строк: title, description, values, placeholder, edited(values)
     ModuleChip.qml        # перетаскиваемый блок модуля: moduleId, title, dragLayer
     ModuleDropZone.qml    # ячейка для блоков: title, modules [{id,title}], dropped(moduleId, index)
   pages/
@@ -23,6 +24,10 @@ settings/
     InterfacePage.qml     # раздел «Интерфейс»: масштаб, отступы, скругление, обводка
     BarPage.qml           # раздел «Бар»: модули по блокам бара перетаскиванием (Config.options.bar)
                           # список модулей — из shell/bar/BarModules.qml, см. modules/README.md
+    PerformanceMenuPage.qml # раздел «Управление производительностью»: меню профилей (Config.options.performanceMenu)
+    ClipboardPage.qml     # раздел «Буфер обмена»: история, картинки, документы, окно (Config.options.clipboard)
+    NewsPage.qml          # раздел «Новости»: темы, свои запросы и ленты, окно (Config.options.news)
+    WeatherPage.qml       # раздел «Погода»: дни прогноза, почасовой, фон, местоположение, обновление (Config.options.weather)
     SecurityPage.qml      # раздел «Безопасность»: защита от записи экрана (Config.options.security)
     ShellPage.qml         # раздел «Оболочка»: обновление из GitHub (services/updater/Updater.qml)
     NixosPage.qml         # раздел «NixOS»: install.sh из nixos-config, optimize, rebuild (services/updater/NixosUpdater.qml)

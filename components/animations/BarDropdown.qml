@@ -66,8 +66,20 @@ PopupWindow {
 
     readonly property real fullHeight: body.childrenRect.height + padding * 2
     property real revealHeight: open ? fullHeight : 0
+    // false — анимируются только открытие/закрытие, а смена высоты открытого окна
+    // следует за содержимым без задержки (содержимое анимирует себя само)
+    property bool animateResize: true
+    property bool settled: false
+    onOpenChanged: settled = false
 
-    Behavior on revealHeight { NumberAnimation { duration: root.animDuration; easing.type: Easing.OutCubic } }
+    Behavior on revealHeight {
+        enabled: root.animateResize || !root.settled
+        NumberAnimation {
+            duration: root.animDuration
+            easing.type: Easing.OutCubic
+            onFinished: if (root.open) root.settled = true
+        }
+    }
 
     // Окно остаётся видимым, пока идёт анимация закрытия.
     visible: open || revealHeight > 0

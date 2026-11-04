@@ -15,8 +15,12 @@ import "../Bar/stopwatch" as Stopwatch
 import "../services/screenshot" as Screenshot
 import "../services/niri" as Niri
 import "../Bar/assistant" as Assistant
+import "../Bar/news" as News
+import "../Bar/weather" as Weather
 import "../Bar/osd" as Osd
 import "../Bar/power" as Power
+import "../Bar/performance" as Performance
+import "../Bar/clipboard" as Clipboard
 import "../widgets" as Widgets
 
 Item {
@@ -27,6 +31,8 @@ Item {
     // Окно настроек: одно на всю оболочку
     Settings.SettingsWindow { id: settingsWindow }
     Settings.SettingsIpc { window: settingsWindow }
+    // Буфер обмена: qs ipc call clipboard toggle
+    Clipboard.Clipboard {}
     MusicEqualizer.MusicPlayerIpc { id: playerIpc }
     // Секундомер: qs ipc call stopwatch toggle
     Stopwatch.Stopwatch { id: stopwatchWindow }
@@ -52,6 +58,26 @@ Item {
             assistantWindow.open = true;
         }
     }
+    // Лента новостей: qs ipc call news toggle; грузит новости, только пока окно открыто
+    News.NewsState { id: newsState; active: newsWindow.open }
+    News.NewsWindow { id: newsWindow; news: newsState }
+    News.NewsIpc {
+        onRequested: (action, output) => {
+            if (action === "close" || (action === "toggle" && newsWindow.open)) {
+                newsWindow.open = false;
+                return;
+            }
+            // Монитор меняется только у скрытого окна
+            if (!newsWindow.visible) {
+                for (let i = 0; i < Quickshell.screens.length; i++)
+                    if (Quickshell.screens[i].name === output)
+                        newsWindow.screen = Quickshell.screens[i];
+            }
+            newsWindow.open = true;
+        }
+    }
+    // Погода: qs ipc call weather toggle|open|close|refresh
+    Weather.WeatherIpc {}
     // Эквалайзер EasyEffects: одно состояние на все экраны
     MusicEqualizer.EqualizerState { id: equalizerState }
     // Сервер уведомлений и всплывающие уведомления
@@ -66,6 +92,8 @@ Item {
     Osd.Osd {}
     // Меню питания: qs ipc call power toggle
     Power.PowerMenu {}
+    // Профили производительности: qs ipc call performance toggle
+    Performance.PerformanceMenu {}
     // Виджеты рабочего стола: qs ipc call widgets toggle
     Widgets.Widgets { equalizer: equalizerState }
     // Окно Bar для каждого экрана
@@ -82,17 +110,6 @@ Item {
             implicitHeight: barHeight + BarStyle.marginTop
             color: "transparent"
             WlrLayershell.namespace: "qs:bar"
-            // Размытие под фоном панели (ext-background-effect-v1); barContent двигается
-            // при автоскрытии, поэтому регион привязан к нему, а не к фону
-            BackgroundEffect.blurRegion: BarStyle.filled ? barBlurRegion : null
-            Region {
-                id: barBlurRegion
-                item: barContent
-                topLeftRadius: barBackground.topLeftRadius
-                topRightRadius: barBackground.topRightRadius
-                bottomLeftRadius: barBackground.bottomLeftRadius
-                bottomRightRadius: barBackground.bottomRightRadius
-            }
 
             // Привязка к экрану
             screen: modelData
@@ -121,6 +138,14 @@ Item {
             function toggleMusicPlayer() {
                 if (musicEqualizer && !musicEqualizer.recentlyDismissed())
                     musicEqualizer.open = !musicEqualizer.open;
+            }
+
+            // Лента новостей открывается на экране этого бара
+            readonly property var news: newsWindow
+            function toggleNews() {
+                if (!newsWindow.visible)
+                    newsWindow.screen = modelData;
+                newsWindow.open = !newsWindow.open;
             }
 
             // Пока плеер виден (включая анимацию закрытия), бар держит клавиатуру — иначе Esc
@@ -172,7 +197,8 @@ Item {
                     bottomRightRadius: notiCenter.shown ? 0 : BarStyle.radius
                     width: parent.width
                     height: parent.height
-                    color: Qt.alpha(Theme.Palette.background, Tokens.surfaceOpacity)
+                    // Однотонный фон без размытия
+                    color: Theme.Palette.background
                 }
 
                 // Окно для выбора обоев: только на первом экране, чтобы IPC "wallpaper" был один
