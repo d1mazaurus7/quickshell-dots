@@ -114,7 +114,7 @@
         "backgroundBlur": true,
         "cava": true,
         "coverBackground": true,
-        "danceGif": "Umamusume Uma Sticker(1).gif",
+        "danceGif": "gif.gif",
         "danceGifEnabled": true,
         "equalizer": true,
         "lyrics": true,
@@ -198,6 +198,7 @@
     },
     "sound": {
         "clickSound": "click.wav",
+        "interactionSounds": true,
         "mixer": true,
         "mixerInputs": true,
         "mixerOutputs": true,
@@ -225,6 +226,85 @@
     "version": 1,
     "wallpaper": {
         "password": "2508"
+    },
+    "widgets": {
+        "grid": true,
+        "gridSize": 50,
+        "items": [
+            {
+                "height": 193,
+                "screen": "DP-2",
+                "settings": {
+                    "backgroundBlur": true,
+                    "cava": true,
+                    "cavaStyle": "wave",
+                    "coverBackground": true,
+                    "danceGif": "Happy Dance Sticker.gif",
+                    "danceGifEnabled": false,
+                    "equalizer": false,
+                    "lyrics": true,
+                    "lyricsAlign": "left",
+                    "lyricsFontSize": 13,
+                    "timelineStyle": "wave",
+                    "wavyTimeline": true
+                },
+                "type": "musicPlayer",
+                "uid": "musicPlayer-mw1t9b4a",
+                "width": 421,
+                "x": 50,
+                "y": 1200
+            },
+            {
+                "height": 254,
+                "screen": "DP-2",
+                "settings": {
+                    "interval": 3000,
+                    "showUsed": true,
+                    "showWave": true
+                },
+                "type": "sysDisk",
+                "uid": "sysDisk-mw1uxovu",
+                "width": 188,
+                "x": 50,
+                "y": 600
+            },
+            {
+                "height": 252,
+                "screen": "DP-2",
+                "settings": {
+                    "interval": 4000,
+                    "showUsed": true,
+                    "showWave": true
+                },
+                "type": "sysRam",
+                "uid": "sysRam-mw1v06e0",
+                "width": 196,
+                "x": 50,
+                "y": 900
+            },
+            {
+                "height": 253,
+                "screen": "DP-2",
+                "settings": {
+                },
+                "type": "sysCpu",
+                "uid": "sysCpu-mw1v5ymc",
+                "width": 197,
+                "x": 300,
+                "y": 900
+            },
+            {
+                "height": 256,
+                "screen": "DP-2",
+                "settings": {
+                },
+                "type": "sysGpu",
+                "uid": "sysGpu-mw1v6wrd",
+                "width": 200,
+                "x": 300,
+                "y": 600
+            }
+        ]
     },
     "workspaces": {
         "hideEmpty": true,

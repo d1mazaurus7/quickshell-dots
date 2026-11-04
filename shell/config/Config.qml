@@ -233,6 +233,8 @@ Singleton {
             }
 
             property JsonObject sound: JsonObject {
+                // Звуки взаимодействия: печать, клик, окно громкости
+                property bool interactionSounds: true
                 // Звук печати в лаунчере (имя файла из assets/sounds)
                 property string typeSound: "type.wav"
                 // Звук клика (кнопки скриншотов и окна громкости)
@@ -323,6 +325,15 @@ Singleton {
             property JsonObject wallpaper: JsonObject {
                 // Пароль секретных обоев (~/Pictures/.secret_wallpapers), "" — вход закрыт
                 property string password: ""
+            }
+
+            property JsonObject widgets: JsonObject {
+                // Экземпляры виджетов: [{ uid, type, screen, x, y, width, height, settings }].
+                // Пишет только редактор (widgets/WidgetsState.qml), менять присваиванием
+                property var items: []
+                // Сетка редактора и её шаг, лог. px
+                property bool grid: false
+                property int gridSize: 40
             }
 
             property JsonObject security: JsonObject {

@@ -29,7 +29,8 @@ Scope {
         if (now - lastSound < 60)
             return;
         lastSound = now;
-        Quickshell.execDetached(["pw-play", Quickshell.shellPath("assets/sounds/" + Config.options.sound.osdSound)]);
+        if (Config.options.sound.interactionSounds)
+            Quickshell.execDetached(["pw-play", Quickshell.shellPath("assets/sounds/" + Config.options.sound.osdSound)]);
     }
 
     // Без трекера у узла не заполняются данные audio

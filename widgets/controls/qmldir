@@ -1,0 +1,11 @@
+singleton WidgetSound 1.0 WidgetSound.qml
+IconButton 1.0 IconButton.qml
+TextButton 1.0 TextButton.qml
+ToggleRow 1.0 ToggleRow.qml
+ChoiceRow 1.0 ChoiceRow.qml
+SliderRow 1.0 SliderRow.qml
+WidgetCard 1.0 WidgetCard.qml
+ImagePicker 1.0 ImagePicker.qml
+DropdownRow 1.0 DropdownRow.qml
+ChildGroup 1.0 ChildGroup.qml
+TabSwitch 1.0 TabSwitch.qml

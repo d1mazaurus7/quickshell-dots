@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Layouts
 import "../../shell/config"
 import "../../shell/theme"
+import "../../modules/volume"
 import "../controls"
 
 // Раздел «Звук»: Config.options.sound
@@ -25,6 +26,8 @@ ColumnLayout {
 
     spacing: Tokens.spacingMediumV
 
+    AudioDevices { id: devices }
+
     Text {
         Layout.bottomMargin: Tokens.spacingMediumV
         text: "Звук"
@@ -34,7 +37,59 @@ ColumnLayout {
     }
 
     SettingRow {
+        z: sinkDropdown.expanded ? 1 : 0
+        title: "Устройство вывода"
+        description: "Вывод звука по умолчанию"
+
+        SettingDropdown {
+            id: sinkDropdown
+            model: devices.sinks.map(n => devices.label(n))
+            currentValue: devices.label(devices.sink)
+            popupHeight: Tokens.scaled(180)
+            onActivated: value => devices.setSink(value)
+        }
+    }
+
+    SettingRow {
+        z: sourceDropdown.expanded ? 1 : 0
+        title: "Устройство ввода"
+        description: "Микрофон по умолчанию"
+        alert: devices.micMuted
+        alertIcon: "mic_off"
+
+        SettingDropdown {
+            id: sourceDropdown
+            model: devices.sources.map(n => devices.label(n))
+            currentValue: devices.label(devices.source)
+            popupHeight: Tokens.scaled(180)
+            onActivated: value => devices.setSource(value)
+        }
+    }
+
+    SettingRow {
+        title: "Отключить микрофон"
+        description: "Микрофон по умолчанию не записывает звук"
+
+        SettingSwitch {
+            checked: devices.micMuted
+            onToggled: checked => devices.setMicMuted(checked)
+        }
+    }
+
+    SettingRow {
+        title: "Звуки взаимодействия с системой"
+        description: "Печать, клики и окно громкости"
+
+        SettingSwitch {
+            checked: page.sound.interactionSounds
+            onToggled: checked => page.sound.interactionSounds = checked
+        }
+    }
+
+    SettingRow {
         z: typeDropdown.expanded ? 1 : 0
+        child: true
+        shown: page.sound.interactionSounds
         title: "Звук печати"
         description: "Звук при наборе текста в лаунчере"
 
@@ -50,6 +105,8 @@ ColumnLayout {
 
     SettingRow {
         z: clickDropdown.expanded ? 1 : 0
+        child: true
+        shown: page.sound.interactionSounds
         title: "Звук клика"
         description: "Звук нажатия кнопок скриншотов и окна громкости"
 
@@ -65,6 +122,8 @@ ColumnLayout {
 
     SettingRow {
         z: notifyDropdown.expanded ? 1 : 0
+        child: true
+        shown: page.sound.interactionSounds
         title: "Звук уведомления"
         description: "Пока не интегрирован"
 
@@ -80,6 +139,8 @@ ColumnLayout {
 
     SettingRow {
         z: osdDropdown.expanded ? 1 : 0
+        child: true
+        shown: page.sound.interactionSounds
         title: "Звук изменения громкости"
         description: "Звук всплывающего окна громкости и Caps/Num Lock"
 

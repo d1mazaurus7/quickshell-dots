@@ -67,7 +67,7 @@ PanelWindow {
     readonly property string typeSoundPath: Qt.resolvedUrl("../assets/sounds/" + Config.options.sound.typeSound).toString().replace(/^file:\/\//, "")
 
     function playTypeSound(): void {
-        if (open) typeSoundProcess.running = true;
+        if (open && Config.options.sound.interactionSounds) typeSoundProcess.running = true;
     }
 
     Process {

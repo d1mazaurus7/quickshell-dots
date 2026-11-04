@@ -387,7 +387,7 @@ PanelWindow {
                         font: root.fontMedium
                         clip: true
                         selectByMouse: true
-                        onTextEdited: typeSound.running = true
+                        onTextEdited: if (Config.options.sound.interactionSounds) typeSound.running = true
 
                         Keys.onReturnPressed: root.popupOpen ? root.pick(suggestions.currentIndex) : root.sendMessage()
                         Keys.onEnterPressed: root.popupOpen ? root.pick(suggestions.currentIndex) : root.sendMessage()

@@ -9,6 +9,8 @@ Scope {
     readonly property PwNode sink: Pipewire.defaultAudioSink
     readonly property real volume: sink?.audio?.volume ?? 0
     readonly property bool muted: sink?.audio?.muted ?? false
+    readonly property PwNode source: Pipewire.defaultAudioSource
+    readonly property bool micMuted: source?.audio?.muted ?? false
 
     // Набор потоков зависит только от добавления/удаления узлов (isStream постоянен),
     // иначе трекер перепривязывает узлы на каждое изменение properties
@@ -35,6 +37,6 @@ Scope {
 
     // Без трекера у узлов не заполняются данные audio
     PwObjectTracker {
-        objects: [root.sink, ...root.streams].filter(n => n)
+        objects: [root.sink, root.source, ...root.streams].filter(n => n)
     }
 }

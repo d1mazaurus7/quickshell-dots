@@ -17,6 +17,7 @@ import "../services/niri" as Niri
 import "../Bar/assistant" as Assistant
 import "../Bar/osd" as Osd
 import "../Bar/power" as Power
+import "../widgets" as Widgets
 
 Item {
     id: shellRoot
@@ -65,6 +66,8 @@ Item {
     Osd.Osd {}
     // Меню питания: qs ipc call power toggle
     Power.PowerMenu {}
+    // Виджеты рабочего стола: qs ipc call widgets toggle
+    Widgets.Widgets { equalizer: equalizerState }
     // Окно Bar для каждого экрана
     Variants {
         model: Quickshell.screens

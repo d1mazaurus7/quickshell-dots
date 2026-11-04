@@ -35,7 +35,8 @@ Rectangle {
     readonly property int padding: Tokens.scaled(8)
 
     function playClick(): void {
-        Quickshell.execDetached(["pw-play", Quickshell.shellPath("assets/sounds/" + Config.options.sound.clickSound)]);
+        if (Config.options.sound.interactionSounds)
+            Quickshell.execDetached(["pw-play", Quickshell.shellPath("assets/sounds/" + Config.options.sound.clickSound)]);
     }
 
     implicitWidth: row.implicitWidth + padding * 2

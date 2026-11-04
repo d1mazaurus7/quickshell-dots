@@ -22,14 +22,44 @@ ColumnLayout {
 
         property string title
         property var nodes: []
+        // Устройство раздела отключено: заголовок красный, рядом перечёркнутый микрофон
+        property bool muted: false
 
         Layout.fillWidth: true
         spacing: Tokens.spacingMediumV
 
-        Text {
-            text: section.title
-            color: mixer.colors.on_surface
-            font: Tokens.fontLarge
+        RowLayout {
+            spacing: 0
+
+            Text {
+                text: section.title
+                color: section.muted ? mixer.colors.error : mixer.colors.on_surface
+                font: Tokens.fontLarge
+                Behavior on color { ColorAnimation { duration: Tokens.animationFast } }
+            }
+
+            // Ширина сворачивается вместе с прозрачностью — без скачка текста
+            Item {
+                id: muteIcon
+                property real reveal: section.muted ? 1 : 0
+                Behavior on reveal { NumberAnimation { duration: Tokens.animationFast; easing.type: Easing.OutCubic } }
+
+                Layout.preferredWidth: (glyph.implicitWidth + Tokens.spacingSmall) * reveal
+                Layout.preferredHeight: glyph.implicitHeight
+                visible: reveal > 0
+                opacity: reveal
+                clip: true
+
+                Text {
+                    id: glyph
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "mic_off"
+                    color: mixer.colors.error
+                    font.family: "Material Symbols Rounded"
+                    font.pixelSize: Tokens.fontLarge.pixelSize
+                }
+            }
         }
 
         Text {
@@ -59,6 +89,7 @@ ColumnLayout {
         Layout.topMargin: Tokens.spacingMediumV
         visible: mixer.showInputs
         title: "Входы:"
+        muted: mixer.audio.micMuted
         nodes: mixer.audio.inputs
     }
 

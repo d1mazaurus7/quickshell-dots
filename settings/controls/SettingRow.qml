@@ -14,6 +14,9 @@ Rectangle {
     property int depth: child ? 1 : 0
     // Показ/скрытие с разворачиванием вниз (вместо visible)
     property bool shown: true
+    // Предупреждение: название цвета error, справа от него иконка alertIcon (Material Symbols)
+    property bool alert: false
+    property string alertIcon: ""
 
     property real reveal: shown ? 1 : 0
     // Закрытие — с ускорением к концу (M3 emphasized accelerate): без медленного хвоста,
@@ -52,12 +55,43 @@ Rectangle {
         y: (row.fullHeight - height) / 2
         spacing: 2
 
-        Text {
+        RowLayout {
             Layout.fillWidth: true
-            text: row.title
-            color: row.colors.on_surface
-            font: Tokens.fontMedium
-            elide: Text.ElideRight
+            spacing: 0
+
+            Text {
+                Layout.maximumWidth: texts.width - alertBox.width
+                text: row.title
+                color: row.alert ? row.colors.error : row.colors.on_surface
+                font: Tokens.fontMedium
+                elide: Text.ElideRight
+                Behavior on color { ColorAnimation { duration: Tokens.animationFast } }
+            }
+
+            // Ширина сворачивается вместе с прозрачностью — без скачка текста
+            Item {
+                id: alertBox
+                property real reveal: row.alert && row.alertIcon !== "" ? 1 : 0
+                Behavior on reveal { NumberAnimation { duration: Tokens.animationFast; easing.type: Easing.OutCubic } }
+
+                Layout.preferredWidth: (alertGlyph.implicitWidth + Tokens.spacingSmall) * reveal
+                Layout.preferredHeight: alertGlyph.implicitHeight
+                visible: reveal > 0
+                opacity: reveal
+                clip: true
+
+                Text {
+                    id: alertGlyph
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: row.alertIcon
+                    color: row.colors.error
+                    font.family: "Material Symbols Rounded"
+                    font.pixelSize: Tokens.fontMedium.pixelSize + Tokens.scaled(2)
+                }
+            }
+
+            Item { Layout.fillWidth: true }
         }
 
         Text {

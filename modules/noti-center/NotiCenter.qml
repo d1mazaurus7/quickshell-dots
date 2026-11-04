@@ -932,7 +932,7 @@ Item {
                                         else if (reminderFlick.contentY + reminderFlick.height < r.y + r.height)
                                             reminderFlick.contentY = r.y + r.height - reminderFlick.height;
                                     }
-                                    onTextChanged: if (activeFocus)
+                                    onTextChanged: if (activeFocus && Config.options.sound.interactionSounds)
                                         Quickshell.execDetached(["pw-play", Quickshell.shellPath("assets/sounds/" + Config.options.sound.typeSound)])
 
                                     Text {
@@ -1086,7 +1086,7 @@ Item {
                                     font.pixelSize: Math.round(13 * root.s)
                                     onCursorRectangleChanged: noteFlick.ensureVisible(cursorRectangle)
                                     // Звук печати только от ввода, не от подстановки текста
-                                    onTextChanged: if (activeFocus)
+                                    onTextChanged: if (activeFocus && Config.options.sound.interactionSounds)
                                         Quickshell.execDetached(["pw-play", Quickshell.shellPath("assets/sounds/" + Config.options.sound.typeSound)])
 
                                     Text {
