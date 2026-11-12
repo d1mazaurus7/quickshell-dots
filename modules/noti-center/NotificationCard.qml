@@ -1,0 +1,547 @@
+import QtQuick
+import QtQuick.Shapes
+import Quickshell
+import Quickshell.Wayland
+import Quickshell.Services.Notifications
+import "../../theme" as Theme
+import "../../shell/theme"
+import "../../shell/config"
+
+// Карточка уведомления (MD3): аватар, заголовок, текст, действия.
+// Смахивается перетаскиванием; соседей двигает move-транзиция родительского Column.
+Item {
+    id: card
+
+    required property var notification
+    property real s: 1
+    // Всплывающая карточка: край экрана "right" | "left"; "" — в центре.
+    property string edge: ""
+    property real earRadius: 10 * s
+    // Автоскрытие всплывающей карточки, мс; 0 — не скрывать.
+    property int timeout: 0
+    // Общее состояние смахивания списка: { activeIndex, offset, detached }.
+    property var group: null
+    property int listIndex: -1
+
+    readonly property var cfg: Config.options.notiCenter
+    readonly property bool canRight: cfg.swipe && cfg.swipeDirection !== "left"
+    readonly property bool canLeft: cfg.swipe && cfg.swipeDirection !== "right"
+    readonly property bool critical: !!notification && notification.urgency === NotificationUrgency.Critical
+    readonly property var buttons: notification ? notification.actions.filter(a => a.identifier !== "default") : []
+    readonly property var defaultAction: notification ? (notification.actions.find(a => a.identifier === "default") ?? null) : null
+
+    function resolveIcon(icon: string): string {
+        if (icon === "")
+            return "";
+        if (icon.startsWith("/"))
+            return "file://" + icon;
+        return icon.includes("://") ? icon : Quickshell.iconPath(icon, true);
+    }
+    readonly property string appIconSource: notification
+        ? resolveIcon(notification.appIcon !== "" ? notification.appIcon : (DesktopEntries.byId(notification.desktopEntry)?.icon ?? ""))
+        : ""
+    readonly property bool hasImage: !!notification && notification.image !== ""
+    readonly property string iconSource: hasImage ? notification.image : appIconSource
+
+    property bool expanded: false
+    property bool ready: false
+
+    property real reveal: edge === "" ? 1 : 0
+    property real pop: 0
+    property real dx: 0
+    property real dragBase: 0
+    readonly property bool attached: !!group && group.activeIndex >= 0 && !group.detached
+        && Math.abs(group.activeIndex - listIndex) === 1
+    readonly property real pullTarget: attached ? group.offset * 0.25 : 0
+    property real pull: 0
+    onPullTargetChanged: {
+        if (attached) {
+            unstick.stop();
+            pull = pullTarget;
+        } else if (pull !== 0) {
+            unstick.restart();
+        }
+    }
+
+    readonly property real v: Math.max(-width, Math.min(width, dx + pull))
+    readonly property real r: Tokens.radius(16) * s
+    readonly property real stickR: r * Math.max(0, 1 - Math.abs(v) / (16 * s))
+    readonly property real pad: 14 * s
+    // Целевая высота меняется скачком (один move у соседей), фон догоняет анимацией.
+    readonly property real fullHeight: Math.max(col.implicitHeight, 40 * s) + pad * 2
+
+    signal finished()
+
+    width: parent ? parent.width : 0
+    height: fullHeight
+
+    function swipeOut(dir: int): void {
+        if (swipeAnim.running)
+            return;
+        snapBack.stop();
+        swipeAnim.to = dir * width;
+        swipeAnim.start();
+    }
+
+    function hide(): void {
+        if (!swipeAnim.running && !hideAnim.running)
+            hideAnim.start();
+    }
+
+    function close(): void {
+        if (edge !== "")
+            hide();
+        else
+            swipeOut(canLeft && !canRight ? -1 : 1);
+    }
+
+    function track(t: real): void {
+        dx = Math.max(canLeft ? -width : 0, Math.min(canRight ? width : 0, dragBase + t));
+        if (!group)
+            return;
+        group.activeIndex = listIndex;
+        group.offset = dx;
+        if (Math.abs(dx) > width * 0.2)
+            group.detached = true;
+    }
+
+    function release(): void {
+        if (group && group.activeIndex === listIndex)
+            group.activeIndex = -1;
+        if (Math.abs(dx) > width * 0.35)
+            swipeOut(dx > 0 ? 1 : -1);
+        else if (dx !== 0)
+            snapBack.start();
+    }
+
+    Component.onCompleted: {
+        ready = true;
+        popAnim.start();
+        if (edge !== "")
+            showAnim.start();
+    }
+    Component.onDestruction: if (group && group.activeIndex === listIndex) group.activeIndex = -1
+
+    NumberAnimation {
+        id: unstick
+        target: card; property: "pull"; to: 0
+        duration: Tokens.animationSlow * 2; easing.type: Easing.OutElastic
+        easing.amplitude: 1; easing.period: 0.45
+    }
+
+    NumberAnimation {
+        id: showAnim
+        target: card; property: "reveal"; to: 1
+        duration: Tokens.animationSlow; easing.type: Easing.OutCubic
+    }
+
+    NumberAnimation {
+        id: popAnim
+        target: card; property: "pop"; from: 0; to: 1
+        duration: Tokens.animationSlow; easing.type: Easing.OutBack; easing.overshoot: 2
+    }
+
+    NumberAnimation {
+        id: snapBack
+        target: card; property: "dx"; to: 0
+        duration: Tokens.animationMedium; easing.type: Easing.OutCubic
+    }
+
+    SequentialAnimation {
+        id: swipeAnim
+        property real to: 0
+        NumberAnimation { target: card; property: "dx"; to: swipeAnim.to; duration: Tokens.animationMedium; easing.type: Easing.OutCubic }
+        ScriptAction { script: card.notification.dismiss() }
+    }
+
+    SequentialAnimation {
+        id: hideAnim
+        NumberAnimation { target: card; property: "reveal"; to: 0; duration: Tokens.animationSlow; easing.type: Easing.InCubic }
+        ScriptAction { script: card.finished() }
+    }
+
+    Timer {
+        interval: card.timeout
+        running: card.timeout > 0 && card.reveal === 1 && !hover.hovered && !drag.active
+        onTriggered: card.hide()
+    }
+
+    Item {
+        id: content
+        width: card.width
+        height: bg.height
+        x: (card.edge === "right" ? 1 : card.edge === "left" ? -1 : 0) * (1 - card.reveal) * card.width
+        opacity: (1 - Math.abs(card.v) / card.width * 0.6) * (card.edge === "" ? 1 : 0.4 + 0.6 * card.reveal)
+
+        HoverHandler { id: hover }
+
+        DragHandler {
+            id: drag
+            target: null
+            yAxis.enabled: false
+            enabled: card.canLeft || card.canRight
+            dragThreshold: 6 * card.s
+            grabPermissions: PointerHandler.CanTakeOverFromAnything
+            cursorShape: Qt.ClosedHandCursor
+            onActiveChanged: {
+                if (active) {
+                    snapBack.stop();
+                    card.dragBase = card.dx;
+                    if (card.group) {
+                        card.group.detached = false;
+                        card.group.activeIndex = card.listIndex;
+                    }
+                } else {
+                    card.release();
+                }
+            }
+            onActiveTranslationChanged: if (active && !swipeAnim.running) card.track(activeTranslation.x)
+        }
+
+        TapHandler {
+            enabled: !!card.defaultAction
+            cursorShape: Qt.PointingHandCursor
+            onTapped: card.defaultAction.invoke()
+        }
+
+        Rectangle {
+            id: bg
+            x: Math.max(0, card.v)
+            width: card.width - Math.abs(card.v)
+            height: card.fullHeight
+            clip: true
+            Behavior on height {
+                enabled: card.ready
+                NumberAnimation { duration: Tokens.animationMedium; easing.type: Easing.OutCubic }
+            }
+            topRightRadius: card.edge === "right" ? 0 : card.v > 0 ? card.stickR : card.r
+            bottomRightRadius: topRightRadius
+            topLeftRadius: card.edge === "left" ? 0 : card.v < 0 ? card.stickR : card.r
+            bottomLeftRadius: topLeftRadius
+            color: card.edge !== "" ? Theme.Palette.background : Theme.Palette.surface_container_high
+
+            // State layer MD3.
+            Rectangle {
+                anchors.fill: parent
+                topLeftRadius: bg.topLeftRadius
+                topRightRadius: bg.topRightRadius
+                bottomLeftRadius: bg.bottomLeftRadius
+                bottomRightRadius: bg.bottomRightRadius
+                color: Theme.Palette.on_surface
+                opacity: drag.active ? 0.1 : hover.hovered ? 0.05 : 0
+                Behavior on opacity { NumberAnimation { duration: Tokens.animationFast } }
+            }
+
+            Item {
+                x: card.v - bg.x
+                width: card.width
+                height: parent.height
+
+                // Аватар: изображение уведомления или иконка приложения; без них — буква.
+                Item {
+                    id: avatar
+                    x: card.pad
+                    y: card.pad
+                    width: 40 * card.s
+                    height: width
+                    scale: (0.5 + 0.5 * card.pop) * (hover.hovered ? 1.06 : 1)
+                    Behavior on scale { enabled: !popAnim.running; NumberAnimation { duration: Tokens.animationMedium; easing.type: Easing.OutCubic } }
+
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: card.hasImage ? Tokens.radius(12) * card.s : width / 2
+                        color: card.critical ? Theme.Palette.error_container : Theme.Palette.primary_container
+                        clip: true
+
+                        Text {
+                            anchors.centerIn: parent
+                            visible: icon.status !== Image.Ready
+                            text: card.notification ? (card.notification.appName || "?").charAt(0).toUpperCase() : ""
+                            color: card.critical ? Theme.Palette.on_error_container : Theme.Palette.on_primary_container
+                            font.family: Tokens.typography.family
+                            font.pixelSize: Math.round(18 * card.s)
+                            font.weight: Font.Medium
+                        }
+
+                        Image {
+                            id: icon
+                            anchors.fill: parent
+                            anchors.margins: card.hasImage ? 0 : 6 * card.s
+                            source: card.iconSource
+                            sourceSize.width: 80 * card.s
+                            sourceSize.height: 80 * card.s
+                            fillMode: card.hasImage ? Image.PreserveAspectCrop : Image.PreserveAspectFit
+                            asynchronous: true
+                        }
+                    }
+
+                    // Значок приложения поверх картинки уведомления.
+                    Rectangle {
+                        visible: card.hasImage && card.appIconSource !== "" && badgeIcon.status === Image.Ready
+                        x: parent.width - width * 0.75
+                        y: parent.height - height * 0.75
+                        width: 18 * card.s
+                        height: width
+                        radius: width / 2
+                        color: bg.color
+                        scale: card.pop
+
+                        Image {
+                            id: badgeIcon
+                            anchors.fill: parent
+                            anchors.margins: 2 * card.s
+                            source: card.hasImage ? card.appIconSource : ""
+                            sourceSize.width: 36 * card.s
+                            sourceSize.height: 36 * card.s
+                            fillMode: Image.PreserveAspectFit
+                            asynchronous: true
+                        }
+                    }
+                }
+
+                Column {
+                    id: col
+                    anchors.left: avatar.right
+                    anchors.leftMargin: 12 * card.s
+                    anchors.right: parent.right
+                    anchors.rightMargin: card.pad
+                    y: card.pad - 4 * card.s
+                    spacing: 2 * card.s
+
+                    // Шапка: приложение, срочность, развернуть, закрыть.
+                    Item {
+                        width: parent.width
+                        height: 24 * card.s
+
+                        Row {
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: parent.width - actions.width - 4 * card.s
+                            spacing: 6 * card.s
+
+                            Text {
+                                id: urgentIcon
+                                visible: card.critical
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: ""
+                                color: Theme.Palette.error
+                                font.family: "JetBrainsMono Nerd Font"
+                                font.pixelSize: Math.round(11 * card.s)
+                                scale: card.pop
+                            }
+
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: parent.width - (urgentIcon.visible ? urgentIcon.width + parent.spacing : 0)
+                                text: card.notification ? card.notification.appName || "Уведомление" : ""
+                                elide: Text.ElideRight
+                                color: card.critical ? Theme.Palette.error : Theme.Palette.on_surface_variant
+                                font.family: Tokens.typography.family
+                                font.pixelSize: Math.round(11 * card.s)
+                                font.weight: Font.Medium
+                                font.letterSpacing: 0.4 * card.s
+                            }
+                        }
+
+                        Row {
+                            id: actions
+                            anchors.right: parent.right
+                            anchors.rightMargin: -6 * card.s
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 0
+
+                            Item {
+                                visible: card.expanded || summaryText.truncated || bodyText.truncated
+                                width: 24 * card.s
+                                height: width
+                                
+                                Rectangle {
+                                    anchors.fill: parent
+                                    radius: width / 2
+                                    color: Theme.Palette.on_surface
+                                    opacity: expandArea.pressed ? 0.12 : expandArea.containsMouse ? 0.08 : 0
+                                    Behavior on opacity { NumberAnimation { duration: Tokens.animationFast } }
+                                }
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "\uf078"
+                                    color: expandArea.containsMouse ? Theme.Palette.on_surface : Theme.Palette.on_surface_variant
+                                    font.family: "JetBrainsMono Nerd Font"
+                                    font.pixelSize: Math.round(11 * card.s)
+                                    rotation: card.expanded ? 180 : 0
+                                    scale: expandArea.pressed ? 0.8 : 1
+                                    Behavior on rotation { NumberAnimation { duration: Tokens.animationMedium; easing.type: Easing.OutCubic } }
+                                    Behavior on scale { NumberAnimation { duration: Tokens.animationFast; easing.type: Easing.OutCubic } }
+                                    Behavior on color { ColorAnimation { duration: Tokens.animationFast } }
+                                }
+
+                                MouseArea {
+                                    id: expandArea
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: card.expanded = !card.expanded
+                                }
+                            }
+
+                            Item {
+                                width: 24 * card.s
+                                height: width
+                                opacity: hover.hovered ? 1 : 0.6
+                                Behavior on opacity { NumberAnimation { duration: Tokens.animationFast } }
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    radius: width / 2
+                                    color: Theme.Palette.on_surface
+                                    opacity: closeArea.pressed ? 0.12 : closeArea.containsMouse ? 0.08 : 0
+                                    Behavior on opacity { NumberAnimation { duration: Tokens.animationFast } }
+                                }
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "\uf00d"
+                                    color: closeArea.containsMouse ? Theme.Palette.on_surface : Theme.Palette.on_surface_variant
+                                    font.family: "JetBrainsMono Nerd Font"
+                                    font.pixelSize: Math.round(11 * card.s)
+                                    rotation: closeArea.containsMouse ? 90 : 0
+                                    scale: closeArea.pressed ? 0.8 : 1
+                                    Behavior on rotation { NumberAnimation { duration: Tokens.animationMedium; easing.type: Easing.OutCubic } }
+                                    Behavior on scale { NumberAnimation { duration: Tokens.animationFast; easing.type: Easing.OutCubic } }
+                                    Behavior on color { ColorAnimation { duration: Tokens.animationFast } }
+                                }
+
+                                MouseArea {
+                                    id: closeArea
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: card.close()
+                                }
+                            }
+                        }
+                    }
+
+                    Text {
+                        id: summaryText
+                        width: parent.width
+                        visible: text !== ""
+                        text: card.notification ? card.notification.summary : ""
+                        textFormat: Text.PlainText
+                        wrapMode: card.expanded ? Text.Wrap : Text.NoWrap
+                        elide: Text.ElideRight
+                        color: Theme.Palette.on_surface
+                        font.family: Tokens.typography.family
+                        font.pixelSize: Math.round(14 * card.s)
+                        font.weight: Font.Medium
+                    }
+
+                    Text {
+                        id: bodyText
+                        width: parent.width
+                        visible: text !== ""
+                        text: card.notification ? card.notification.body : ""
+                        textFormat: Text.PlainText
+                        wrapMode: Text.Wrap
+                        maximumLineCount: card.expanded ? 1000 : card.cfg.bodyLines
+                        elide: Text.ElideRight
+                        lineHeight: 1.1
+                        color: Theme.Palette.on_surface_variant
+                        font.family: Tokens.typography.family
+                        font.pixelSize: Math.round(12 * card.s)
+                    }
+
+                    Flow {
+                        width: parent.width
+                        visible: card.cfg.showActions && card.buttons.length > 0
+                        topPadding: 8 * card.s
+                        spacing: 6 * card.s
+
+                        Repeater {
+                            model: card.buttons
+
+                            Rectangle {
+                                id: btn
+                                required property var modelData
+                                required property int index
+                                readonly property bool primary: index === 0
+                                width: label.implicitWidth + 24 * card.s
+                                height: 30 * card.s
+                                radius: height / 2
+                                color: primary ? Theme.Palette.primary : Theme.Palette.secondary_container
+                                scale: btnArea.pressed ? 0.95 : 1
+                                Behavior on scale { NumberAnimation { duration: Tokens.animationFast; easing.type: Easing.OutCubic } }
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    radius: parent.radius
+                                    color: label.color
+                                    opacity: btnArea.pressed ? 0.12 : btnArea.containsMouse ? 0.08 : 0
+                                    Behavior on opacity { NumberAnimation { duration: Tokens.animationFast } }
+                                }
+
+                                Text {
+                                    id: label
+                                    anchors.centerIn: parent
+                                    text: btn.modelData.text
+                                    color: btn.primary ? Theme.Palette.on_primary : Theme.Palette.on_secondary_container
+                                    font.family: Tokens.typography.family
+                                    font.pixelSize: Math.round(12 * card.s)
+                                    font.weight: Font.Medium
+                                }
+
+                                MouseArea {
+                                    id: btnArea
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: btn.modelData.invoke()
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Вогнутые скругления у края экрана — карточка «вырастает» из рамки монитора.
+        Item {
+            anchors.fill: bg
+            visible: card.edge !== ""
+            opacity: 1 - Math.min(1, Math.max(0, card.edge === "right" ? -card.v : card.v) / (card.earRadius * 2))
+            transform: Scale { origin.x: bg.width / 2; xScale: card.edge === "left" ? -1 : 1 }
+
+            Shape {
+                x: bg.width - card.earRadius
+                y: -card.earRadius
+                width: card.earRadius
+                height: card.earRadius
+                preferredRendererType: Shape.CurveRenderer
+                ShapePath {
+                    strokeWidth: -1
+                    fillColor: bg.color
+                    startX: card.earRadius; startY: 0
+                    PathLine { x: card.earRadius; y: card.earRadius }
+                    PathLine { x: 0; y: card.earRadius }
+                    PathArc { x: card.earRadius; y: 0; radiusX: card.earRadius; radiusY: card.earRadius; direction: PathArc.Counterclockwise }
+                }
+            }
+
+            Shape {
+                x: bg.width - card.earRadius
+                y: bg.height
+                width: card.earRadius
+                height: card.earRadius
+                preferredRendererType: Shape.CurveRenderer
+                ShapePath {
+                    strokeWidth: -1
+                    fillColor: bg.color
+                    startX: card.earRadius; startY: card.earRadius
+                    PathLine { x: card.earRadius; y: 0 }
+                    PathLine { x: 0; y: 0 }
+                    PathArc { x: card.earRadius; y: card.earRadius; radiusX: card.earRadius; radiusY: card.earRadius }
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,3 @@
+singleton BarModules 1.0 BarModules.qml
+singleton BarStyle 1.0 BarStyle.qml
+BarSection 1.0 BarSection.qml

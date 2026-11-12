@@ -1,0 +1,254 @@
+pragma ComponentBehavior: Bound
+import QtQuick
+import QtQuick.Layouts
+import Qt.labs.folderlistmodel
+import Quickshell
+import "../../shell/config"
+import "../../shell/theme"
+import "../controls"
+
+// Раздел «Центр уведомлений»: Config.options.notiCenter (панель и её содержимое)
+ColumnLayout {
+    id: page
+
+    readonly property var colors: Tokens.colors
+    readonly property var nc: Config.options.notiCenter
+    readonly property bool remindersShown: nc.showCalendar && nc.reminders
+    // Звуки напоминаний из assets/sounds/notes
+    readonly property var reminderSounds: {
+        const list = [];
+        for (let i = 0; i < reminderSoundFiles.count; i++)
+            list.push(reminderSoundFiles.get(i, "fileName"));
+        return list;
+    }
+
+    spacing: Tokens.spacingMediumV
+
+    FolderListModel {
+        id: reminderSoundFiles
+        folder: "file://" + Quickshell.shellPath("assets/sounds/notes")
+        nameFilters: ["*.wav", "*.ogg", "*.flac"]
+        showDirs: false
+    }
+
+    component Subtitle: Text {
+        Layout.topMargin: Tokens.spacingLargeV
+        color: Tokens.colors.on_surface
+        font: Tokens.fontLarge
+    }
+
+    component Toggle: SettingRow {
+        id: toggle
+        required property string key
+
+        SettingSwitch {
+            checked: Config.options.notiCenter[toggle.key]
+            onToggled: checked => Config.options.notiCenter[toggle.key] = checked
+        }
+    }
+
+    Text {
+        Layout.bottomMargin: Tokens.spacingMediumV
+        text: "Центр уведомлений"
+        color: page.colors.on_surface
+        font.family: Tokens.fontLarge.family
+        font.pixelSize: Tokens.fontLarge.pixelSize + Tokens.scaled(4)
+    }
+
+    Subtitle { Layout.topMargin: 0; text: "Панель" }
+
+    SettingRow {
+        title: "Ширина"
+        description: "Ширина панели в пикселях, масштаб не меняет"
+
+        SettingSlider {
+            from: 360
+            to: 640
+            stepSize: 10
+            value: page.nc.width
+            formatValue: v => Math.round(v) + " px"
+            onMoved: value => { console.log("NCDBG slider moved", value); page.nc.width = Math.round(value); }
+            onValueChanged: console.log("NCDBG slider value", value)
+        }
+    }
+
+    SettingRow {
+        title: "Масштаб"
+        description: "Размер всего содержимого панели, не зависит от ширины"
+
+        SettingSlider {
+            from: 0.7
+            to: 1.6
+            stepSize: 0.05
+            value: page.nc.scale
+            formatValue: v => Math.round(v * 100) + "%"
+            onMoved: value => page.nc.scale = Math.round(value * 100) / 100
+        }
+    }
+
+    SettingRow {
+        title: "Высота виджетов"
+        description: "Высота строки сетки быстрых настроек (до масштаба)"
+
+        SettingSlider {
+            from: 40
+            to: 96
+            stepSize: 2
+            value: page.nc.widgetHeight
+            formatValue: v => Math.round(v) + " px"
+            onMoved: value => page.nc.widgetHeight = Math.round(value)
+        }
+    }
+
+    SettingRow {
+        title: "Высота"
+        description: "Доля доступной высоты экрана"
+
+        SettingSlider {
+            from: 0.4
+            to: 1
+            stepSize: 0.05
+            value: page.nc.heightRatio
+            formatValue: v => Math.round(v * 100) + "%"
+            onMoved: value => page.nc.heightRatio = value
+        }
+    }
+
+    Toggle {
+        key: "uiSounds"
+        title: "Звуки нажатий"
+        description: "Щелчки при нажатии кнопок и плиток"
+    }
+
+    Subtitle { text: "Виджет «Часы»" }
+
+    Toggle {
+        key: "showSeconds"
+        title: "Секунды"
+        description: "Показывать секунды"
+    }
+
+    Toggle {
+        key: "showDate"
+        title: "Дата"
+        description: "Число, месяц и год под временем"
+    }
+
+    Toggle {
+        key: "showWeekday"
+        title: "День недели"
+        description: "Сокращённый день недели справа"
+    }
+
+    Subtitle { text: "Календарь" }
+
+    Toggle {
+        key: "showCalendar"
+        title: "Календарь"
+        description: "Календарь месяца под уведомлениями"
+    }
+
+    SettingRow {
+        // Раскрытый список рисуется поверх следующих пунктов
+        z: arrowsDropdown.expanded ? 1 : 0
+        shown: page.nc.showCalendar
+        child: true
+        title: "Стрелки"
+        description: "Сторона кнопок переключения месяца"
+
+        SettingDropdown {
+            id: arrowsDropdown
+            model: ["Слева", "Справа"]
+            popupHeight: Tokens.scaled(96)
+            currentValue: page.nc.calendarArrows === "left" ? "Слева" : "Справа"
+            onActivated: value => page.nc.calendarArrows = value === "Слева" ? "left" : "right"
+        }
+    }
+
+    Subtitle {
+        visible: page.nc.showCalendar
+        text: "Напоминания"
+    }
+
+    Toggle {
+        key: "reminders"
+        shown: page.nc.showCalendar
+        title: "Напоминания"
+        description: "Уведомление в выбранное время на дате календаря"
+    }
+
+    Toggle {
+        key: "remindersIgnoreDnd"
+        shown: page.remindersShown
+        child: true
+        title: "В режиме «Не беспокоить»"
+        description: "Показывать напоминания даже при включённом режиме"
+    }
+
+    SettingRow {
+        shown: page.remindersShown
+        child: true
+        title: "Период напоминания"
+        description: "Через сколько повторять, пока не остановлено"
+
+        SettingSlider {
+            from: 30
+            to: 3600
+            stepSize: 30
+            value: page.nc.reminderInterval
+            formatValue: v => {
+                const sec = Math.round(v);
+                const min = Math.floor(sec / 60);
+                return min === 0 ? sec + " с" : sec % 60 === 0 ? min + " мин" : min + " мин " + sec % 60 + " с";
+            }
+            onMoved: value => page.nc.reminderInterval = Math.round(value)
+        }
+    }
+
+    Toggle {
+        key: "reminderRequireStop"
+        shown: page.remindersShown
+        child: true
+        title: "До нажатия «Остановить»"
+        description: "Повторять напоминание, пока не нажата кнопка в уведомлении"
+    }
+
+    SettingRow {
+        z: reminderSoundDropdown.expanded ? 1 : 0
+        shown: page.remindersShown
+        child: true
+        title: "Звук напоминания"
+        description: page.reminderSounds.length > 0 ? "Файлы из assets/sounds/notes"
+                                                   : "Папка assets/sounds/notes пуста"
+
+        SettingDropdown {
+            id: reminderSoundDropdown
+            model: ["Без звука"].concat(page.reminderSounds)
+            currentValue: page.nc.reminderSound === "" ? "Без звука" : page.nc.reminderSound
+            popupHeight: Tokens.scaled(180)
+            onActivated: value => page.nc.reminderSound = value === "Без звука" ? "" : value
+        }
+    }
+
+    Subtitle { text: "Карточки уведомлений" }
+
+    SettingRow {
+        title: "Строк текста"
+        description: "Сколько строк текста показывать в карточке"
+
+        SettingSlider {
+            from: 1
+            to: 10
+            stepSize: 1
+            value: page.nc.bodyLines
+            formatValue: v => Math.round(v)
+            onMoved: value => page.nc.bodyLines = Math.round(value)
+        }
+    }
+
+    Toggle {
+        key: "showActions"
+        title: "Кнопки действий"
+        description: "Кнопки из уведомлений, например «Пометить прочитанным»"
+    }
+}
