@@ -3,29 +3,22 @@ import Quickshell.Io
 
 // Потребление одного ресурса: kind — "disk" | "ram" | "cpu" | "gpu".
 // fraction — занятая доля 0..1, used/free — байты (disk, ram) или проценты (cpu, gpu).
-// history — последние значения fraction для графика
 Item {
     id: root
 
     property string kind: "cpu"
     property int interval: 1000
-    property int historyLength: 60
 
     property real fraction: 0
     property real used: 0
     property real free: 0
     property bool ready: false
-    property var history: []
 
     signal sampled()
 
     function push(f: real): void {
         fraction = Math.max(0, Math.min(1, f));
         ready = true;
-        const h = history.concat([fraction]);
-        const n = historyLength + 2;
-        // Недостающее начало заполняем самым старым значением — график сразу на всю ширину
-        history = h.length > n ? h.slice(h.length - n) : new Array(n - h.length).fill(h[0]).concat(h);
         sampled();
     }
 

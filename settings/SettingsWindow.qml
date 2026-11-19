@@ -35,6 +35,7 @@ PanelWindow {
         { title: "Погода", icon: "partly_cloudy_day", page: weatherPage },
         { title: "Управление питанием", icon: "power_settings_new", page: powerMenuPage },
         { title: "Управление производительностью", icon: "speed", page: performanceMenuPage },
+        { title: "Система", icon: "monitor_heart", page: systemPage },
         { title: "Лаунчер", icon: "apps", page: launcherPage },
         { title: "Буфер обмена", icon: "content_paste", page: clipboardPage },
         { title: "Обои", icon: "wallpaper", page: wallpaperPage },
@@ -134,6 +135,7 @@ PanelWindow {
     Component { id: weatherPage; Pages.WeatherPage {} }
     Component { id: powerMenuPage; Pages.PowerMenuPage {} }
     Component { id: performanceMenuPage; Pages.PerformanceMenuPage {} }
+    Component { id: systemPage; Pages.SystemPage {} }
     Component { id: launcherPage; Pages.LauncherPage {} }
     Component { id: clipboardPage; Pages.ClipboardPage {} }
     Component { id: wallpaperPage; Pages.WallpaperPage {} }

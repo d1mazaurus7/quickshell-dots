@@ -24,6 +24,7 @@ import "../Bar/performance" as Performance
 import "../Bar/clipboard" as Clipboard
 import "../widgets" as Widgets
 import "../Bar/lockscreen" as Lockscreen
+import "../Bar/system" as SystemInfo
 
 Item {
     id: shellRoot
@@ -98,6 +99,14 @@ Item {
     Power.PowerMenu {}
     // Профили производительности: qs ipc call performance toggle
     Performance.PerformanceMenu {}
+    // Окно «Система»: qs ipc call system toggle; история копится и при закрытом окне (по настройке)
+    SystemInfo.SystemState {
+        id: systemState
+        active: systemWindow.visible || Config.options.system.backgroundHistory
+        detailed: systemWindow.visible
+        interval: Config.options.system.interval
+    }
+    SystemInfo.SystemWindow { id: systemWindow; sys: systemState }
     // Виджеты рабочего стола: qs ipc call widgets toggle
     Widgets.Widgets { id: desktopWidgets; equalizer: equalizerState; lock: lockState }
     // Лок-скрин: qs ipc call lockscreen lock

@@ -25,6 +25,11 @@ Scope {
             sink.audio.volume = Math.max(0, Math.min(1, value));
     }
 
+    function toggleMute(): void {
+        if (sink?.audio)
+            sink.audio.muted = !sink.audio.muted;
+    }
+
     // Только WirePlumber: перезапуск PipeWire рвёт соединение приложений и оболочки,
     // а Quickshell к нему не переподключается
     function restartAudio(): void {

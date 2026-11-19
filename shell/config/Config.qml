@@ -318,6 +318,28 @@ Singleton {
                 property bool labels: true
             }
 
+            property JsonObject system: JsonObject {
+                // Размер окна «Система», лог. px
+                property int width: 1300
+                property int height: 780
+                // Период опроса датчиков, мс
+                property int interval: 1000
+                // Окно графиков, с
+                property int range: 300
+                // Копить историю, пока окно закрыто
+                property bool backgroundHistory: true
+                // Фон из M3-фигур
+                property bool shapes: true
+                // Затемнение экрана под окном
+                property bool scrim: true
+                // Сглаженные линии графиков
+                property bool smoothGraphs: true
+                // Подсказка со значениями при наведении на график
+                property bool graphTooltip: true
+                // Открытая вкладка: 0 CPU | 1 GPU | 2 RAM | 3 Disk
+                property int tab: 0
+            }
+
             property JsonObject launcher: JsonObject {
                 // Край экрана, от которого выезжает лаунчер: "top" | "bottom" | "left" | "right"
                 property string position: "bottom"

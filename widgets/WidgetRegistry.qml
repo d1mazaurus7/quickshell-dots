@@ -15,13 +15,7 @@ QtObject {
 
     // Дефолты виджетов потребления; kind — ресурс, не меняется
     readonly property var sysmonDefaults: ({
-        showWave: true,
-        blurFree: false,
         showUsed: true,
-        showFree: true,
-        usageTab: true,
-        graphTab: true,
-        graphSpan: 60,
         interval: 1000
     })
 
@@ -32,9 +26,9 @@ QtObject {
             icon: icon,
             component: Qt.resolvedUrl("sysmon/SysmonWidget.qml"),
             settingsComponent: Qt.resolvedUrl("sysmon/SysmonWidgetSettings.qml"),
-            width: 130, height: 170,
+            width: 150, height: 150,
             minWidth: 100, maxWidth: 320,
-            minHeight: 120, maxHeight: 400,
+            minHeight: 100, maxHeight: 320,
             defaults: Object.assign({ kind: kind }, sysmonDefaults)
         };
     }

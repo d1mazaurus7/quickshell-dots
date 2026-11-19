@@ -102,7 +102,6 @@ kill -TERM "$1"
 
             Text {
                 id: label
-                text: "Tray"
                 color: buttonArea.pressed ? Theme.Palette.on_secondary_container
                      : root.open ? Theme.Palette.primary
                      : Theme.Palette.on_surface
@@ -156,7 +155,7 @@ kill -TERM "$1"
                 spacing: root.menuSpacing
 
                 Text {
-                    text: "Active programs"
+                    text: "Активные программы:"
                     color: Theme.Palette.on_surface
                     font.family: root.fontFamily
                     font.pixelSize: root.titleFontSize
